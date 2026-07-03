@@ -35,7 +35,8 @@ locals {
     "GET /leaderboard",
     "GET /matches/current",
     "GET /matches/history",
-    "GET /matches/{matchId}/predictions"
+    "GET /matches/{matchId}/predictions",
+    "GET /status"
   ])
   participant_routes = toset([
     "GET /me/profile",

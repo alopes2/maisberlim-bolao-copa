@@ -4,6 +4,8 @@ public static class PublicEndpoints
 {
     public static IEndpointRouteBuilder MapPublicEndpoints(this IEndpointRouteBuilder endpoints)
     {
+        endpoints.MapGet("/status", () => Results.Ok(new { status = "ok" }));
+
         endpoints.MapGet("/matches/current", async (
             IApiQueries queries,
             CancellationToken cancellationToken) =>

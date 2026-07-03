@@ -87,6 +87,7 @@ public class ParticipantEndpointTests
     }
 
     [Theory]
+    [InlineData("/status")]
     [InlineData("/matches/current")]
     [InlineData("/matches/history")]
     [InlineData("/leaderboard")]
