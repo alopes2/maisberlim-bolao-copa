@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { BrowserRouter } from 'react-router-dom'
 
 import { ApiClient } from '@/api/client'
 import { AuthProvider } from '@/auth/AuthProvider'
@@ -21,7 +22,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider client={cognitoAuth}>
       <QueryClientProvider client={queryClient}>
-        <App api={api} />
+        <BrowserRouter>
+          <App api={api} />
+        </BrowserRouter>
       </QueryClientProvider>
     </AuthProvider>
   </StrictMode>,
