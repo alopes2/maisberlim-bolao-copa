@@ -68,6 +68,7 @@ resource "aws_cognito_user_pool_client" "web" {
 }
 
 locals {
-  callback_urls = sort(concat(aws_cloudfront_distribution.frontend.aliases, [aws_cloudfront_distribution.frontend.domain_name, "https://localhost:5173/"]))
-  logout_urls   = sort(concat(aws_cloudfront_distribution.frontend.aliases, [aws_cloudfront_distribution.frontend.domain_name, "https://localhost:5173/"]))
+  cloudfront_aliases_list = tolist(aws_cloudfront_distribution.frontend.aliases)
+  callback_urls           = sort(concat(local.cloudfront_aliases_list, [aws_cloudfront_distribution.frontend.domain_name, "https://localhost:5173/"]))
+  logout_urls             = sort(concat(local.cloudfront_aliases_list, [aws_cloudfront_distribution.frontend.domain_name, "https://localhost:5173/"]))
 }
