@@ -61,8 +61,13 @@ resource "aws_cognito_user_pool_client" "web" {
   allowed_oauth_flows_user_pool_client = true
   allowed_oauth_flows                  = ["code"]
   allowed_oauth_scopes                 = ["openid", "email", "profile"]
-  callback_urls                        = sort(tolist(var.cognito_callback_urls))
-  logout_urls                          = sort(tolist(var.cognito_logout_urls))
+  callback_urls                        = local.callback_urls
+  logout_urls                          = local.logout_urls
   supported_identity_providers         = [aws_cognito_identity_provider.google.provider_name]
   prevent_user_existence_errors        = "ENABLED"
+}
+
+locals {
+  callback_urls = sort(concat(aws_cloudfront_distribution.frontend.aliases, [aws_cloudfront_distribution.frontend.domain_name, "https://localhost:5173/"]))
+  logout_urls   = sort(concat(aws_cloudfront_distribution.frontend.aliases, [aws_cloudfront_distribution.frontend.domain_name, "https://localhost:5173/"]))
 }

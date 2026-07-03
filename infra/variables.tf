@@ -26,26 +26,6 @@ variable "cognito_domain_prefix" {
   type        = string
 }
 
-variable "cognito_callback_urls" {
-  description = "Allowed OAuth callback URLs for the Cognito web client."
-  type        = set(string)
-
-  validation {
-    condition     = length(var.cognito_callback_urls) > 0
-    error_message = "cognito_callback_urls must contain at least one URL."
-  }
-}
-
-variable "cognito_logout_urls" {
-  description = "Allowed post-logout URLs for the Cognito web client."
-  type        = set(string)
-
-  validation {
-    condition     = length(var.cognito_logout_urls) > 0
-    error_message = "cognito_logout_urls must contain at least one URL."
-  }
-}
-
 variable "google_client_id" {
   description = "Google OAuth web client ID used by Cognito."
   type        = string
