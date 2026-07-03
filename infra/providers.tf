@@ -15,6 +15,16 @@ provider "aws" {
   }
 }
 
+provider "aws" {
+  region = "us-east-1"
+  alias  = "useast1"
+  default_tags {
+    tags = {
+      application = var.project_name
+    }
+  }
+}
+
 data "aws_caller_identity" "current" {}
 data "aws_partition" "current" {}
 

@@ -37,3 +37,31 @@ output "lambda_function_names" {
 output "scheduler_schedule_group_name" {
   value = nonsensitive(aws_scheduler_schedule_group.matches.name)
 }
+
+output "cloudfront_acm_validation_records" {
+  value = [
+    for dvo in aws_acm_certificate.cloudfront.domain_validation_options : {
+      name  = trimsuffix(dvo.resource_record_name, ".")
+      type  = dvo.resource_record_type
+      value = trimsuffix(dvo.resource_record_value, ".")
+    }
+  ]
+}
+
+output "api_acm_validation_records" {
+  value = [
+    for dvo in aws_acm_certificate.api.domain_validation_options : {
+      name  = trimsuffix(dvo.resource_record_name, ".")
+      type  = dvo.resource_record_type
+      value = trimsuffix(dvo.resource_record_value, ".")
+    }
+  ]
+}
+
+output "cloudfront_dns_target" {
+  value = aws_cloudfront_distribution.frontend.domain_name
+}
+
+output "api_dns_target" {
+  value = aws_apigatewayv2_domain_name.api.domain_name_configuration[0].target_domain_name
+}
