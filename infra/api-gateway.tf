@@ -45,8 +45,10 @@ locals {
   ])
   admin_routes = toset([
     "GET /admin/matches",
+    "GET /admin/teams",
     "POST /admin/matches",
     "PUT /admin/matches/{matchId}",
+    "PUT /admin/teams/{fifaCode}/elimination",
     "GET /admin/matches/{matchId}/result",
     "GET /admin/matches/{matchId}/provisional-leaderboard",
     "PUT /admin/matches/{matchId}/result",
