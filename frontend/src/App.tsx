@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link, Route, Routes, useSearchParams } from 'react-router-dom'
 
 import type { ApiClient } from '@/api/client'
 import { useAuth } from '@/auth/auth-context'
@@ -12,21 +13,28 @@ import { RulesPage } from '@/features/legal/RulesPage'
 import { AdminMatchPage } from '@/features/admin/AdminMatchPage'
 import { AdminMatchesPage } from '@/features/admin/AdminMatchesPage'
 
-export function App({ api }: { api: ApiClient }) {
+function NotFoundPage() {
+  return (
+    <main className="flex min-h-svh flex-col items-center justify-center gap-4 p-4 text-center">
+      <h1 className="text-lg font-semibold">Página não encontrada.</h1>
+      <Button variant="outline" asChild>
+        <Link to="/">Voltar ao início</Link>
+      </Button>
+    </main>
+  )
+}
+
+function AuthenticatedApp({ api, isAdmin }: { api: ApiClient, isAdmin: boolean }) {
   const auth = useAuth()
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
   const [profileCompleted, setProfileCompleted] = useState(false)
   const [signingOut, setSigningOut] = useState(false)
   const profileQuery = useQuery({
     queryKey: ['profile-status'],
     queryFn: () => api.hasProfile(),
-    enabled: auth.status === 'authenticated' && !window.location.pathname.startsWith('/admin'),
+    enabled: auth.status === 'authenticated' && !isAdmin,
   })
-
-  if (window.location.pathname === '/regras') return <RulesPage />
-  if (window.location.pathname === '/datenschutz' || window.location.pathname === '/privacidade') {
-    return <PrivacyPage />
-  }
 
   if (auth.status === 'checking') {
     return (
@@ -50,8 +58,8 @@ export function App({ api }: { api: ApiClient }) {
   }
 
   let page
-  if (window.location.pathname.startsWith('/admin')) {
-    const matchId = new URLSearchParams(window.location.search).get('matchId')
+  if (isAdmin) {
+    const matchId = searchParams.get('matchId')
     page = matchId
       ? <AdminMatchPage api={api} matchId={matchId} />
       : <AdminMatchesPage api={api} />
@@ -75,7 +83,7 @@ export function App({ api }: { api: ApiClient }) {
           <span className="font-semibold">Bolão MaisBerlim</span>
           <div className="flex items-center gap-2">
             <Button variant="outline" asChild>
-              <a href="/regras">Regras</a>
+              <Link to="/regras">Regras</Link>
             </Button>
             <Button variant="outline" onClick={handleSignOut} disabled={signingOut}>
               Sair
@@ -85,5 +93,18 @@ export function App({ api }: { api: ApiClient }) {
       </header>
       {page}
     </>
+  )
+}
+
+export function App({ api }: { api: ApiClient }) {
+  return (
+    <Routes>
+      <Route path="/" element={<AuthenticatedApp api={api} isAdmin={false} />} />
+      <Route path="/admin" element={<AuthenticatedApp api={api} isAdmin />} />
+      <Route path="/regras" element={<RulesPage />} />
+      <Route path="/datenschutz" element={<PrivacyPage />} />
+      <Route path="/privacidade" element={<PrivacyPage />} />
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
   )
 }
