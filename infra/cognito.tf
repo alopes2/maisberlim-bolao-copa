@@ -72,7 +72,7 @@ locals {
     for domain in concat(
       tolist(aws_cloudfront_distribution.frontend.aliases),
       [aws_cloudfront_distribution.frontend.domain_name]
-    ) : "https://${domain}"
+    ) : "https://${domain}/"
   ]
   callback_urls = sort(concat(local.cloudfront_domains, ["https://localhost:5173/"]))
   logout_urls   = sort(concat(local.cloudfront_domains, ["https://localhost:5173/"]))
