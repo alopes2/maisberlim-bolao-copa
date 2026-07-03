@@ -13,6 +13,7 @@ import { getRoster } from '@/data/rosters';
 import { Leaderboard } from '@/features/leaderboard/Leaderboard';
 import { MatchHistory } from '@/features/leaderboard/MatchHistory';
 import { RoundWinner } from '@/features/leaderboard/RoundWinner';
+import { LegalFooter } from '@/features/legal/LegalFooter';
 import { Skeleton } from '@/components/ui/skeleton';
 
 import { PredictionForm, type PredictionValues } from './PredictionForm';
@@ -94,6 +95,7 @@ export function CurrentMatchPage({ api }: { api: ApiClient }) {
         ) : historyQuery.isSuccess ? (
           <MatchHistory matches={historyQuery.data} />
         ) : null}
+        <LegalFooter />
       </main>
     );
   }
@@ -184,6 +186,7 @@ export function CurrentMatchPage({ api }: { api: ApiClient }) {
       ) : historyQuery.isSuccess ? (
         <MatchHistory matches={historyQuery.data} />
       ) : null}
+      <LegalFooter />
     </main>
   );
 }

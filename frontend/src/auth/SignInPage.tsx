@@ -9,6 +9,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Field, FieldError, FieldGroup } from '@/components/ui/field'
+import { LegalFooter } from '@/features/legal/LegalFooter'
 
 import type { AuthClient } from './cognito'
 
@@ -43,29 +44,32 @@ export function SignInPage({ auth, onAuthenticated }: SignInPageProps) {
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-muted/40 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Bolão MaisBerlim</CardTitle>
-          <CardDescription>
-            Entre com sua conta Google para continuar.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={signIn}>
-            <FieldGroup>
-              {error ? (
-                <Field data-invalid>
-                  <FieldError>{error}</FieldError>
-                </Field>
-              ) : null}
-              <Button type="submit" disabled={pending}>
-                {pending ? 'Entrando…' : 'Entrar com Google'}
-              </Button>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
+    <main className="flex min-h-svh flex-col bg-muted/40 p-4">
+      <div className="flex w-full flex-1 items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Bolão MaisBerlim</CardTitle>
+            <CardDescription>
+              Entre com sua conta Google para continuar.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={signIn}>
+              <FieldGroup>
+                {error ? (
+                  <Field data-invalid>
+                    <FieldError>{error}</FieldError>
+                  </Field>
+                ) : null}
+                <Button type="submit" disabled={pending}>
+                  {pending ? 'Entrando…' : 'Entrar com Google'}
+                </Button>
+              </FieldGroup>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+      <LegalFooter />
     </main>
   )
 }

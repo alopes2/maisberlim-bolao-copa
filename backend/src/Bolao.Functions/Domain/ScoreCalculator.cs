@@ -39,14 +39,14 @@ public static class ScoreCalculator
         int actualAway,
         string? actualPenaltyWinner)
     {
-        if (predictedHome == actualHome && predictedAway == actualAway)
-        {
-            return actualPenaltyWinner is null || predictedPenaltyWinner == actualPenaltyWinner ? 5 : 4;
-        }
+        var exactScore = predictedHome == actualHome && predictedAway == actualAway;
+        var correctWinner = actualHome == actualAway && actualPenaltyWinner is not null
+            ? predictedPenaltyWinner == actualPenaltyWinner
+            : Math.Sign(predictedHome - predictedAway) == Math.Sign(actualHome - actualAway);
 
-        return Math.Sign(predictedHome - predictedAway) == Math.Sign(actualHome - actualAway)
-            ? 2
-            : 0;
+        return (exactScore ? 5 : 0)
+            + (correctWinner ? 5 : 0)
+            + (exactScore && correctWinner ? 5 : 0);
     }
 
     private static int ScoreFirstScorer(string selectedPlayerKey, ConfirmedResult result)

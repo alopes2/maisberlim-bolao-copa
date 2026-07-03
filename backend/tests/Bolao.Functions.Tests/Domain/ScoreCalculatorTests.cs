@@ -6,10 +6,12 @@ namespace Bolao.Functions.Tests.Domain;
 public class ScoreCalculatorTests
 {
     [Theory]
-    [InlineData(2, 1, 2, 1, 5)]
-    [InlineData(1, 0, 2, 0, 2)]
+    [InlineData(2, 1, 2, 1, 15)]
+    [InlineData(1, 0, 2, 0, 5)]
     [InlineData(1, 1, 2, 0, 0)]
-    public void ScoresExactOrOutcomeButNeverBoth(
+    [InlineData(1, 1, 2, 2, 5)]
+    [InlineData(1, 1, 1, 1, 15)]
+    public void ScoresExactScoreAndOutcome(
         int predictedHome,
         int predictedAway,
         int actualHome,
@@ -21,12 +23,10 @@ public class ScoreCalculatorTests
     }
 
     [Theory]
-    [InlineData("BRA", "BRA", 5)]
-    [InlineData("ARG", "BRA", 4)]
-    [InlineData(null, "BRA", 4)]
-    [InlineData(null, null, 5)]
-    [InlineData("BRA", null, 5)]
-    public void ExactDrawAccountsForPenaltyWinner(
+    [InlineData("BRA", "BRA", 15)]
+    [InlineData("ARG", "BRA", 5)]
+    [InlineData(null, "BRA", 5)]
+    public void ScoresExactPenaltyDraw(
         string? predictedWinner,
         string? actualWinner,
         int expected)
@@ -36,11 +36,11 @@ public class ScoreCalculatorTests
     }
 
     [Theory]
-    [InlineData("BRA", "ARG", 1, 1, 4, true)]
-    [InlineData(null, "BRA", 1, 1, 4, true)]
-    [InlineData("BRA", null, 1, 1, 5, true)]
-    [InlineData("BRA", "ARG", 2, 2, 2, false)]
-    public void ReportsExactScoreIndependentlyFromPenaltyPoints(
+    [InlineData("BRA", "ARG", 1, 1, 5, true)]
+    [InlineData(null, "BRA", 1, 1, 5, true)]
+    [InlineData("BRA", null, 1, 1, 15, true)]
+    [InlineData("BRA", "ARG", 2, 2, 0, false)]
+    public void ReportsExactScoreIndependentlyFromResultPoints(
         string? predictedWinner,
         string? actualWinner,
         int actualHomeGoals,
@@ -64,14 +64,16 @@ public class ScoreCalculatorTests
     }
 
     [Theory]
-    [InlineData("BRA", "ARG")]
-    [InlineData(null, "BRA")]
-    public void NonExactDrawScoresOutcomeRegardlessOfPenaltyWinner(
+    [InlineData("BRA", "BRA", 5)]
+    [InlineData("ARG", "BRA", 0)]
+    [InlineData(null, "BRA", 0)]
+    public void ScoresNonExactPenaltyDraw(
         string? predictedWinner,
-        string? actualWinner)
+        string? actualWinner,
+        int expected)
     {
         ScoreCalculator.ScoreResult(1, 1, predictedWinner, 2, 2, actualWinner)
-            .Should().Be(2);
+            .Should().Be(expected);
     }
 
     [Fact]
@@ -133,14 +135,14 @@ public class ScoreCalculatorTests
     }
 
     [Fact]
-    public void MaximumScoreIsEighteen()
+    public void MaximumScoreIsTwentyEight()
     {
         var score = Score(
             firstScorerKey: "BRA:10",
             homeTopScorerKeys: Set("BRA:10"),
             awayTopScorerKeys: Set("ARG:9"));
 
-        score.Total.Should().Be(18);
+        score.Total.Should().Be(28);
     }
 
     private static ScoreBreakdown Score(

@@ -17,6 +17,9 @@ describe('SignInPage', () => {
 
     render(<SignInPage auth={auth} onAuthenticated={onAuthenticated} />)
 
+    const privacyLink = screen.getByRole('link', { name: 'Datenschutz' })
+    expect(privacyLink).toHaveAttribute('href', '/datenschutz')
+    expect(privacyLink).toHaveClass('min-h-6')
     await user.click(screen.getByRole('button', { name: /entrar com google/i }))
 
     expect(auth.signIn).toHaveBeenCalledOnce()

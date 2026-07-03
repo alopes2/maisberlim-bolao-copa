@@ -37,7 +37,7 @@ public class PublicationTests
 
         var standing = await repositories.GetStandingAsync("user-1", default);
         standing.Should().NotBeNull();
-        standing!.TotalPoints.Should().Be(18);
+        standing!.TotalPoints.Should().Be(28);
         standing.ExactScoreCount.Should().Be(1);
         standing.FirstScorerCount.Should().Be(1);
         standing.AppliedMatches.Should().ContainSingle().Which.Should().Be("match-1");

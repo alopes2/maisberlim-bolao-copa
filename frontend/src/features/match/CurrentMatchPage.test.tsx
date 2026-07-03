@@ -29,5 +29,6 @@ describe('CurrentMatchPage', () => {
     expect(api.getPublicPredictions).not.toHaveBeenCalled()
     expect(api.getUserPrediction).not.toHaveBeenCalled()
     expect(screen.queryByRole('button', { name: /salvar palpite/i })).toBeNull()
+    expect(screen.getByRole('link', { name: 'Datenschutz' })).toHaveAttribute('href', '/datenschutz')
   })
 })

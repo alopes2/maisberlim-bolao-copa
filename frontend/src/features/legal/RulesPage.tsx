@@ -1,9 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 const scoring = [
-  ['Placar exato e ganhador nos pênaltis correto, quando houver', '5'],
-  ['Placar exato, mas ganhador nos pênaltis incorreto ou ausente', '4'],
-  ['Vencedor ou empate correto, sem placar exato', '2'],
+  ['Placar exato', '5'],
+  ['Vencedor ou empate correto', '5'],
+  ['Bônus por acertar placar exato e vencedor ou empate', '5'],
   ['Primeiro jogador a marcar', '3'],
   ['Artilheiro isolado de cada seleção', '3'],
   ['Um dos artilheiros empatados de cada seleção', '2'],
@@ -30,7 +30,7 @@ export function RulesPage() {
               ))}
             </dl>
             <p className="text-muted-foreground">
-              Placar exato e resultado correto não acumulam. Um empate sem placar exato vale 2 pontos, independentemente do ganhador nos pênaltis. Em 0–0 não há pontos por primeiro gol ou artilheiro. O máximo é 18 pontos.
+              Os três critérios principais acumulam até 15 pontos. Nos jogos com pênaltis, o vencedor escolhido nos pênaltis conta como o vencedor. Placar exato com vencedor nos pênaltis incorreto ou ausente vale somente os 5 pontos do placar exato. As categorias secundárias somam no máximo 13 pontos. Em 0–0 não há pontos por primeiro gol ou artilheiro. O máximo é 28 pontos.
             </p>
           </section>
           <section className="flex flex-col gap-2">

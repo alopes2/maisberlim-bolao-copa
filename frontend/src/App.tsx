@@ -24,7 +24,9 @@ export function App({ api }: { api: ApiClient }) {
   })
 
   if (window.location.pathname === '/regras') return <RulesPage />
-  if (window.location.pathname === '/privacidade') return <PrivacyPage />
+  if (window.location.pathname === '/datenschutz' || window.location.pathname === '/privacidade') {
+    return <PrivacyPage />
+  }
 
   if (auth.status === 'checking') {
     return (
@@ -71,9 +73,14 @@ export function App({ api }: { api: ApiClient }) {
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
         <div className="mx-auto flex h-14 w-full max-w-3xl items-center justify-between px-4 sm:px-8">
           <span className="font-semibold">Bolão MaisBerlim</span>
-          <Button variant="outline" onClick={handleSignOut} disabled={signingOut}>
-            Sair
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <a href="/regras">Regras</a>
+            </Button>
+            <Button variant="outline" onClick={handleSignOut} disabled={signingOut}>
+              Sair
+            </Button>
+          </div>
         </div>
       </header>
       {page}

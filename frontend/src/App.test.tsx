@@ -36,6 +36,30 @@ function renderAuthenticatedApp(
   )
 }
 
+function renderUnauthenticatedApp() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  })
+  const auth: AuthContextValue = {
+    client: {
+      signIn: vi.fn(),
+      signOut: vi.fn(),
+      accessToken: vi.fn().mockResolvedValue(null),
+    },
+    status: 'unauthenticated',
+    refresh: vi.fn(),
+    signOut: vi.fn(),
+  }
+
+  render(
+    <AuthContext.Provider value={auth}>
+      <QueryClientProvider client={queryClient}>
+        <App api={{} as ApiClient} />
+      </QueryClientProvider>
+    </AuthContext.Provider>,
+  )
+}
+
 describe('App', () => {
   afterEach(() => window.history.replaceState({}, '', '/'))
 
@@ -47,8 +71,21 @@ describe('App', () => {
     renderAuthenticatedApp(signOut)
 
     expect(screen.getByText('Bolão MaisBerlim')).toBeVisible()
-    await user.click(screen.getByRole('button', { name: 'Sair' }))
+    const rulesLink = screen.getByRole('link', { name: 'Regras' })
+    const signOutButton = screen.getByRole('button', { name: 'Sair' })
+    expect(rulesLink).toHaveAttribute('href', '/regras')
+    expect(rulesLink.compareDocumentPosition(signOutButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    await user.click(signOutButton)
     expect(signOut).toHaveBeenCalledOnce()
+  })
+
+  it.each(['/datenschutz', '/privacidade'])('shows privacy publicly at %s', (path) => {
+    window.history.replaceState({}, '', path)
+
+    renderUnauthenticatedApp()
+
+    expect(screen.getByText('Privacidade')).toBeVisible()
+    expect(screen.queryByRole('button', { name: /entrar com google/i })).toBeNull()
   })
 
   it('shows match management on the admin landing route', async () => {
