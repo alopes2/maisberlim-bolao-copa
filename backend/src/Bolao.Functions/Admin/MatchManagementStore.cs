@@ -19,8 +19,7 @@ public record ManagedMatch(
 
 public class DynamoMatchManagementStore(
     IAmazonDynamoDB client,
-    DynamoDbOptions options,
-    ILogger<DynamoMatchManagementStore> logger) : IMatchManagementStore
+    DynamoDbOptions options) : IMatchManagementStore
 {
     private const string LifecycleId = "__match_lifecycle__";
 
@@ -176,14 +175,6 @@ public class DynamoMatchManagementStore(
                 {
                     throw new ConfirmedResultRequiredException(matchId);
                 }
-            }
-            catch (TransactionCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error finishing match {MatchId}", matchId);
             }
         }
 
