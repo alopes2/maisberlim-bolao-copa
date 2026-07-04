@@ -53,10 +53,11 @@ public class PublicVisibilityTests
         await using var factory = new ParticipantEndpointTests.ApiFactory();
 
         var response = await factory.CreateClient().GetFromJsonAsync<LeaderboardResponse>(
-            "/leaderboard");
+            "/matches/match-1/leaderboard");
 
         response!.Entries.Should().ContainSingle(entry => entry.PublicName == "Ana S.");
         response.RoundWinner.Should().NotBeNull();
         response.RoundWinner!.PublicName.Should().Be("Ana S.");
+        factory.State.LastLeaderboardMatchId.Should().Be("match-1");
     }
 }

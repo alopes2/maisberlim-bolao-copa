@@ -43,10 +43,11 @@ public static class PublicEndpoints
                 cancellationToken));
         });
 
-        endpoints.MapGet("/leaderboard", async (
+        endpoints.MapGet("/matches/{matchId}/leaderboard", async (
+            string matchId,
             IApiQueries queries,
             CancellationToken cancellationToken) =>
-            Results.Ok(await queries.GetConfirmedLeaderboardAsync(cancellationToken)));
+            Results.Ok(await queries.GetConfirmedLeaderboardAsync(matchId, cancellationToken)));
 
         return endpoints;
     }

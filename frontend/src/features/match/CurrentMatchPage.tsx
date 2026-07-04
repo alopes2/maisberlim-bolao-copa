@@ -26,8 +26,9 @@ export function CurrentMatchPage({ api }: { api: ApiClient }) {
     queryFn: () => api.getCurrentMatch(),
   });
   const leaderboardQuery = useQuery({
-    queryKey: ['leaderboard'],
-    queryFn: () => api.getLeaderboard(),
+    queryKey: ['leaderboard', matchQuery.data?.id],
+    queryFn: () => api.getLeaderboard(matchQuery.data!.id),
+    enabled: Boolean(matchQuery.data),
   });
   const historyQuery = useQuery({
     queryKey: ['match-history'],
@@ -86,14 +87,6 @@ export function CurrentMatchPage({ api }: { api: ApiClient }) {
             <p className="text-sm text-muted-foreground">Nenhum bolao ativo no momento</p>
           </CardContent>
         </Card>
-        {leaderboardQuery.isPending ? (
-          <Skeleton className="h-32 w-full" />
-        ) : leaderboardQuery.isSuccess ? (
-          <>
-            <RoundWinner winner={leaderboardQuery.data.roundWinner} />
-            <Leaderboard entries={leaderboardQuery.data.entries} />
-          </>
-        ) : null}
         {historyQuery.isPending ? (
           <Skeleton className="h-24 w-full" />
         ) : historyQuery.isSuccess ? (

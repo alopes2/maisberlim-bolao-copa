@@ -117,7 +117,9 @@ public class E2EState
         }
     }
 
-    public Task<LeaderboardResponse> GetConfirmedLeaderboardAsync(CancellationToken cancellationToken) =>
+    public Task<LeaderboardResponse> GetConfirmedLeaderboardAsync(
+        string matchId,
+        CancellationToken cancellationToken) =>
         Task.FromResult(confirmedLeaderboard);
 
     public Task<StoredPrediction?> GetPredictionAsync(

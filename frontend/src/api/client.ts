@@ -176,9 +176,9 @@ export class ApiClient implements ProfileApi, AdminApi {
     return (await response.json()) as MatchResponse | null;
   }
 
-  async getLeaderboard() {
+  async getLeaderboard(matchId: string) {
     const response = await fetch(
-      `${this.baseUrl.replace(/\/$/, '')}/leaderboard`,
+      `${this.baseUrl.replace(/\/$/, '')}/matches/${encodeURIComponent(matchId)}/leaderboard`,
     );
     if (!response.ok) throw new Error('Não foi possível carregar o ranking.');
     return (await response.json()) as LeaderboardResponse;

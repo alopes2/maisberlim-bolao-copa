@@ -90,7 +90,7 @@ public class ParticipantEndpointTests
     [InlineData("/status")]
     [InlineData("/matches/current")]
     [InlineData("/matches/history")]
-    [InlineData("/leaderboard")]
+    [InlineData("/matches/match-1/leaderboard")]
     public async Task PublicRoutesDoNotRequireAuthentication(string route)
     {
         await using var factory = new ApiFactory();
@@ -172,6 +172,24 @@ public class ParticipantEndpointTests
         var prediction = await Queries(client).GetPredictionAsync("match-1", "user-1", default);
 
         prediction!.Answers.PenaltyWinnerTeamFifaCode.Should().Be(penaltyWinner);
+    }
+
+    [Fact]
+    public async Task LeaderboardReadsRoundWinnerFromRequestedMatch()
+    {
+        var client = Substitute.For<IAmazonDynamoDB>();
+        client.ScanAsync(Arg.Any<ScanRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new ScanResponse { Items = [] });
+        client.GetItemAsync(Arg.Any<GetItemRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new GetItemResponse { Item = [] });
+
+        await Queries(client).GetConfirmedLeaderboardAsync("bra-gha-03-07", default);
+
+        await client.Received().GetItemAsync(
+            Arg.Is<GetItemRequest>(request =>
+                request.TableName == "matches"
+                && request.Key["MatchId"].S == "bra-gha-03-07"),
+            Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -315,6 +333,7 @@ public class ParticipantEndpointTests
         public MutableTimeProvider Time { get; } = new(now);
         public string? LastPredictionParticipantId { get; private set; }
         public string? LastProfileParticipantId { get; private set; }
+        public string? LastLeaderboardMatchId { get; private set; }
         public ManagedMatch? CreatedManualMatch { get; private set; }
         public int RecalculationCount { get; private set; }
         public bool DuplicateManualMatch { get; set; }
@@ -347,10 +366,14 @@ public class ParticipantEndpointTests
             ]);
 
         public Task<LeaderboardResponse> GetConfirmedLeaderboardAsync(
-            CancellationToken cancellationToken) =>
-            Task.FromResult(new LeaderboardResponse(
+            string matchId,
+            CancellationToken cancellationToken)
+        {
+            LastLeaderboardMatchId = matchId;
+            return Task.FromResult(new LeaderboardResponse(
                 [new LeaderboardEntry(1, "Ana S.", 18, 1, 1)],
                 new RoundWinner("Ana S.", 18)));
+        }
 
         public Task<StoredPrediction?> GetPredictionAsync(
             string matchId,

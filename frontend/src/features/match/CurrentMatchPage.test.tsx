@@ -35,7 +35,7 @@ describe('CurrentMatchPage', () => {
     )
 
     expect(await screen.findByText('Nenhum bolao ativo no momento')).toBeVisible()
-    await waitFor(() => expect(api.getLeaderboard).toHaveBeenCalledOnce())
+    expect(api.getLeaderboard).not.toHaveBeenCalled()
     expect(api.getMatchHistory).toHaveBeenCalledOnce()
     expect(api.getPublicPredictions).not.toHaveBeenCalled()
     expect(api.getUserPrediction).not.toHaveBeenCalled()
@@ -67,5 +67,27 @@ describe('CurrentMatchPage', () => {
     await user.click(await screen.findByRole('button', { name: 'Salvar palpite' }))
 
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Palpite salvo.'))
+  })
+
+  it('loads the leaderboard for the current match', async () => {
+    const api = {
+      getCurrentMatch: vi.fn().mockResolvedValue({
+        id: 'bra-gha-03-07', kickoff: '2026-07-05T18:00:00Z',
+        homeTeamFifaCode: 'BRA', awayTeamFifaCode: 'GHA',
+      }),
+      getLeaderboard: vi.fn().mockResolvedValue({ entries: [], roundWinner: null }),
+      getMatchHistory: vi.fn().mockResolvedValue([]),
+      getPublicPredictions: vi.fn().mockRejectedValue(new Error('not available')),
+      getUserPrediction: vi.fn().mockResolvedValue(null),
+    } as unknown as ApiClient
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <CurrentMatchPage api={api} />
+      </QueryClientProvider>,
+    )
+
+    await waitFor(() => expect(api.getLeaderboard).toHaveBeenCalledWith('bra-gha-03-07'))
   })
 })

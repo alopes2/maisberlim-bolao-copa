@@ -131,6 +131,7 @@ public class DynamoApiQueries(
     }
 
     public async Task<LeaderboardResponse> GetConfirmedLeaderboardAsync(
+        string matchId,
         CancellationToken cancellationToken)
     {
         var standings = new List<Standing>();
@@ -166,7 +167,7 @@ public class DynamoApiQueries(
                 ordered[index].FirstScorerCount));
         }
 
-        var winner = await LatestRoundWinnerAsync(cancellationToken);
+        var winner = await RoundWinnerAsync(matchId, cancellationToken);
         return new LeaderboardResponse(entries, winner);
     }
 
@@ -188,20 +189,22 @@ public class DynamoApiQueries(
         return response.Item is { Count: > 0 } ? ToPrediction(response.Item) : null;
     }
 
-    private async Task<RoundWinner?> LatestRoundWinnerAsync(CancellationToken cancellationToken)
+    private async Task<RoundWinner?> RoundWinnerAsync(
+        string matchId,
+        CancellationToken cancellationToken)
     {
-        var matches = await ScanMatchItemsAsync(cancellationToken);
-        var latest = matches
-            .Where(item => item.ContainsKey("ConfirmedResult"))
-            .OrderByDescending(item => DateTimeOffset.Parse(item["Kickoff"].S, CultureInfo.InvariantCulture))
-            .FirstOrDefault();
-        if (latest is null)
+        var match = await client.GetItemAsync(new GetItemRequest
+        {
+            TableName = options.MatchesTableName,
+            Key = new Dictionary<string, AttributeValue> { ["MatchId"] = new(matchId) },
+            ProjectionExpression = "ConfirmedResult"
+        }, cancellationToken);
+        if (!match.Item.TryGetValue("ConfirmedResult", out var confirmedResult))
         {
             return null;
         }
 
-        var matchId = latest["MatchId"].S;
-        var result = JsonSerializer.Deserialize<ConfirmedResult>(latest["ConfirmedResult"].S)!;
+        var result = JsonSerializer.Deserialize<ConfirmedResult>(confirmedResult.S)!;
         var winner = (await QueryPredictionsAsync(matchId, cancellationToken))
             .Select(prediction => new { Prediction = prediction, Score = ScoreCalculator.Score(prediction.Answers, result) })
             .OrderByDescending(item => item.Score.Total)

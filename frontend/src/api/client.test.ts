@@ -18,6 +18,18 @@ describe('ApiClient', () => {
     await expect(api.getCurrentMatch()).resolves.toBeNull()
   })
 
+  it('loads the leaderboard for the requested match', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(Response.json({ entries: [], roundWinner: null }))
+    vi.stubGlobal('fetch', fetchMock)
+    const api = new ApiClient('https://api.example.com/', auth())
+
+    await api.getLeaderboard('bra-gha-03-07')
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.com/matches/bra-gha-03-07/leaderboard',
+    )
+  })
+
   it('serializes a penalty winner when saving a prediction', async () => {
     const fetchMock = vi
       .fn()

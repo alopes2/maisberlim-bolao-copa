@@ -9,6 +9,6 @@ public interface IApiQueries
     Task<Match?> GetMatchAsync(string matchId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Match>> GetMatchHistoryAsync(CancellationToken cancellationToken);
     Task<IReadOnlyList<PublicPrediction>> GetPublicPredictionsAsync(string matchId, CancellationToken cancellationToken);
-    Task<LeaderboardResponse> GetConfirmedLeaderboardAsync(CancellationToken cancellationToken);
+    Task<LeaderboardResponse> GetConfirmedLeaderboardAsync(string matchId, CancellationToken cancellationToken);
     Task<StoredPrediction?> GetPredictionAsync(string matchId, string participantId, CancellationToken cancellationToken);
 }
