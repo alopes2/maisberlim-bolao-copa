@@ -32,9 +32,9 @@ resource "aws_apigatewayv2_authorizer" "cognito" {
 
 locals {
   public_routes = toset([
-    "GET /leaderboard",
     "GET /matches/current",
     "GET /matches/history",
+    "GET /matches/{matchId}/leaderboard",
     "GET /matches/{matchId}/predictions",
     "GET /status"
   ])
