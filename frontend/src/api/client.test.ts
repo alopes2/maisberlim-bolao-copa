@@ -282,4 +282,48 @@ describe('ApiClient', () => {
       prizeHandedOverAt: null,
     })).rejects.toThrow(message)
   })
+
+  it('confirms a result', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const api = new ApiClient('https://api.example.com', auth('admin-token'))
+
+    await expect(api.confirmResult('match-1')).resolves.toBeUndefined()
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example.com/admin/matches/match-1/confirm',
+      expect.objectContaining({ method: 'POST' }),
+    )
+  })
+
+  it.each([
+    ['invalid_result', 'Revise o resultado informado e tente novamente.'],
+    ['match_not_found', 'Jogo não encontrado.'],
+    ['result_already_confirmed', 'O resultado deste jogo já foi confirmado.'],
+    ['unexpected_error', 'Ocorreu um erro inesperado. Tente novamente em instantes.'],
+  ])('maps confirm result error %s to Portuguese', async (code, message) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(
+      { code, detail: 'Sensitive backend detail.' },
+      { status: 409 },
+    )))
+    const api = new ApiClient('https://api.example.com', auth('admin-token'))
+
+    await expect(api.confirmResult('match-1')).rejects.toThrow(message)
+  })
+
+  it.each([
+    ['invalid_result', 'Revise o resultado informado e tente novamente.'],
+    ['match_not_found', 'Jogo não encontrado.'],
+    ['result_already_confirmed', 'O resultado deste jogo já foi confirmado.'],
+  ])('maps save result error %s to Portuguese', async (code, message) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json(
+      { code, detail: 'Sensitive backend detail.' },
+      { status: 409 },
+    )))
+    const api = new ApiClient('https://api.example.com', auth('admin-token'))
+
+    await expect(api.saveAdminResult('match-1', {
+      goals: [], homeYellowCards: 0, awayYellowCards: 0,
+      homeRedCards: 0, awayRedCards: 0, penaltyWinnerTeamFifaCode: null,
+    })).rejects.toThrow(message)
+  })
 })

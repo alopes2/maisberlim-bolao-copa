@@ -2,6 +2,7 @@ using Amazon.DynamoDBv2.Model;
 using Bolao.Functions.Admin;
 using Bolao.Functions.Auth;
 using Bolao.Functions.Domain;
+using Bolao.Functions.Logging;
 using Bolao.Functions.Persistence;
 using Bolao.Functions.Rosters;
 
@@ -133,6 +134,7 @@ public static class AdminEndpoints
             string matchId,
             ManualResultDraft result,
             IAdminApi service,
+            ILogger<Program> logger,
             CancellationToken cancellationToken) =>
         {
             try
@@ -142,15 +144,23 @@ public static class AdminEndpoints
             }
             catch (MatchNotFoundException exception)
             {
+                logger.LogWarning(exception, "Rejected result save for match {MatchId}: match not found", LogSanitizer.Sanitize(matchId));
                 return Problem(StatusCodes.Status404NotFound, "match_not_found", exception.Message);
             }
             catch (ResultValidationException exception)
             {
+                logger.LogWarning(exception, "Rejected result save for match {MatchId}: invalid result", LogSanitizer.Sanitize(matchId));
                 return Problem(StatusCodes.Status409Conflict, "invalid_result", exception.Message);
             }
             catch (ResultAlreadyConfirmedException exception)
             {
+                logger.LogWarning(exception, "Rejected result save for match {MatchId}: already confirmed", LogSanitizer.Sanitize(matchId));
                 return Problem(StatusCodes.Status409Conflict, "result_already_confirmed", exception.Message);
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Unexpected error saving result for match {MatchId}", LogSanitizer.Sanitize(matchId));
+                return Problem(StatusCodes.Status500InternalServerError, "unexpected_error", "An unexpected error occurred.");
             }
         });
 
@@ -173,6 +183,7 @@ public static class AdminEndpoints
             string matchId,
             HttpContext context,
             ResultConfirmationService confirmations,
+            ILogger<Program> logger,
             CancellationToken cancellationToken) =>
         {
             var user = CurrentUser.From(context.User)!;
@@ -194,6 +205,11 @@ public static class AdminEndpoints
             catch (ResultAlreadyPublishedException exception)
             {
                 return Problem(StatusCodes.Status409Conflict, "result_already_confirmed", exception.Message);
+            }
+            catch (Exception exception)
+            {
+                logger.LogError(exception, "Unexpected error confirming result for match {MatchId}", LogSanitizer.Sanitize(matchId));
+                return Problem(StatusCodes.Status500InternalServerError, "unexpected_error", "An unexpected error occurred.");
             }
         });
 

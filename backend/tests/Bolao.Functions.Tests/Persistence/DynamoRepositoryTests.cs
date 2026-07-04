@@ -4,7 +4,6 @@ using Bolao.Functions.Admin;
 using Bolao.Functions.Domain;
 using Bolao.Functions.Persistence;
 using FluentAssertions;
-using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace Bolao.Functions.Tests.Persistence;
@@ -120,7 +119,6 @@ public class DynamoRepositoryTests
     public async Task FirstManualMatchCreationIsAtomicAndActive()
     {
         var client = Substitute.For<IAmazonDynamoDB>();
-        var logger = Substitute.For<ILogger<DynamoMatchManagementStore>>();
         client.ScanAsync(Arg.Any<ScanRequest>(), Arg.Any<CancellationToken>())
             .Returns(new ScanResponse { Items = [] });
         TransactWriteItemsRequest? request = null;
@@ -128,7 +126,7 @@ public class DynamoRepositoryTests
                 Arg.Do<TransactWriteItemsRequest>(value => request = value),
                 Arg.Any<CancellationToken>())
             .Returns(new TransactWriteItemsResponse());
-        var store = new DynamoMatchManagementStore(client, Options(), logger);
+        var store = new DynamoMatchManagementStore(client, Options());
 
         await store.CreateManualAsync(ManagedMatch(), default);
 
@@ -153,8 +151,7 @@ public class DynamoRepositoryTests
             });
         client.GetItemAsync(Arg.Any<GetItemRequest>(), Arg.Any<CancellationToken>())
             .Returns(new GetItemResponse { Item = ManagedItem("duplicate") });
-        var logger = Substitute.For<ILogger<DynamoMatchManagementStore>>();
-        var store = new DynamoMatchManagementStore(client, Options(), logger);
+        var store = new DynamoMatchManagementStore(client, Options());
 
         var act = () => store.CreateManualAsync(ManagedMatch(), default);
 
@@ -184,8 +181,7 @@ public class DynamoRepositoryTests
                     Items = [ManagedItem("match-2")],
                     LastEvaluatedKey = []
                 });
-        var logger = Substitute.For<ILogger<DynamoMatchManagementStore>>();
-        var store = new DynamoMatchManagementStore(client, Options(), logger);
+        var store = new DynamoMatchManagementStore(client, Options());
 
         var matches = await store.ListAsync(default);
 
