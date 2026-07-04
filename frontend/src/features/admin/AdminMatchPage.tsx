@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { errorMessage } from '@/lib/utils'
 
 import { ProvisionalLeaderboard } from './ProvisionalLeaderboard'
 import { ResultEditor } from './ResultEditor'
@@ -94,7 +95,7 @@ export function AdminMatchPage({ api, matchId }: { api: ResultAdminApi; matchId:
             }}
           />
           {save.isError ? (
-            <p role="alert" className="text-sm text-destructive">Não foi possível salvar o resultado. Tente novamente.</p>
+            <p role="alert" className="text-sm text-destructive">{errorMessage(save.error)}</p>
           ) : null}
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -116,7 +117,7 @@ export function AdminMatchPage({ api, matchId }: { api: ResultAdminApi; matchId:
             </AlertDialogContent>
           </AlertDialog>
           {confirm.isError ? (
-            <p role="alert" className="text-sm text-destructive">Não foi possível confirmar o resultado. Tente novamente.</p>
+            <p role="alert" className="text-sm text-destructive">{errorMessage(confirm.error)}</p>
           ) : null}
         </CardContent>
       </Card>

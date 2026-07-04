@@ -67,10 +67,10 @@ describe('AdminMatchPage', () => {
 
     await screen.findByText(/BRA × ARG/)
     await user.click(screen.getByRole('button', { name: 'Salvar resultado' }))
-    expect(await screen.findByRole('alert')).toHaveTextContent(/não foi possível salvar o resultado/i)
+    expect(await screen.findByRole('alert')).toHaveTextContent('save failed')
     await user.click(screen.getByRole('button', { name: /confirmar resultado/i }))
     await user.click(await screen.findByRole('button', { name: /^confirmar$/i }))
-    expect(await screen.findByText(/não foi possível confirmar o resultado/i)).toHaveAttribute('role', 'alert')
+    expect(await screen.findByText('confirm failed')).toHaveAttribute('role', 'alert')
   })
 })
 

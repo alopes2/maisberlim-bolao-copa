@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import { berlinLocalToIso, isoToBerlinLocal } from '@/lib/berlinTime'
+import { errorMessage } from '@/lib/utils'
 
 const statusLabels: Record<MatchStatus, string> = {
   Active: 'Ativo',
@@ -466,10 +467,6 @@ function TeamSelect({
       </select>
     </div>
   )
-}
-
-function errorMessage(error: unknown) {
-  return error instanceof Error ? error.message : 'Ocorreu um erro inesperado.'
 }
 
 function isInvalidField(field: keyof ManualForm, form: ManualForm, validation: string | null) {

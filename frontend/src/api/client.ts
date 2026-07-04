@@ -232,7 +232,7 @@ export class ApiClient implements ProfileApi, AdminApi {
       `/admin/matches/${matchId}/result`,
     );
     if (!response.ok)
-      throw new Error('Não foi possível carregar o resultado provisório.');
+      throw await apiError(response, 'Não foi possível carregar o resultado provisório.');
     return (await response.json()) as ManualResultDraft;
   }
 
@@ -293,7 +293,7 @@ export class ApiClient implements ProfileApi, AdminApi {
       `/admin/matches/${matchId}/provisional-leaderboard`,
     );
     if (!response.ok)
-      throw new Error('Não foi possível carregar o ranking provisório.');
+      throw await apiError(response, 'Não foi possível carregar o ranking provisório.');
     return (await response.json()) as LeaderboardResponse;
   }
 
@@ -305,7 +305,8 @@ export class ApiClient implements ProfileApi, AdminApi {
         body: JSON.stringify(result),
       },
     );
-    if (!response.ok) throw new Error('Não foi possível salvar o resultado.');
+    if (!response.ok)
+      throw await apiError(response, 'Não foi possível salvar o resultado.');
   }
 
   async confirmResult(matchId: string) {
@@ -316,7 +317,7 @@ export class ApiClient implements ProfileApi, AdminApi {
       },
     );
     if (!response.ok)
-      throw new Error('Não foi possível confirmar o resultado.');
+      throw await apiError(response, 'Não foi possível confirmar o resultado.');
   }
 
   async finishMatch(matchId: string) {
@@ -359,10 +360,13 @@ async function apiError(response: Response, fallback: string) {
 
 const adminProblemMessages: Record<string, string> = {
   invalid_match: 'Revise os dados do jogo e tente novamente.',
+  invalid_result: 'Revise o resultado informado e tente novamente.',
   match_exists: 'Já existe um jogo com este ID.',
   match_not_active: 'O jogo selecionado não está ativo.',
   confirmed_result_required: 'Confirme o resultado antes de finalizar o jogo.',
   match_lifecycle_conflict: 'Outro jogo foi alterado ao mesmo tempo. Atualize a página e tente novamente.',
   match_not_found: 'Jogo não encontrado.',
+  result_already_confirmed: 'O resultado deste jogo já foi confirmado.',
   team_not_found: 'Time não encontrado.',
+  unexpected_error: 'Ocorreu um erro inesperado. Tente novamente em instantes.',
 };
