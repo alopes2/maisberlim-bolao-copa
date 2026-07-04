@@ -14,5 +14,15 @@ public class MatchNotActiveException(string matchId)
 public class ConfirmedResultRequiredException(string matchId)
     : InvalidOperationException($"Match '{matchId}' requires a confirmed result before it can be finished.");
 
-public class MatchLifecycleConflictException(string matchId)
-    : InvalidOperationException($"Match lifecycle changed while finishing '{matchId}'.");
+public class MatchLifecycleConflictException : InvalidOperationException
+{
+    public MatchLifecycleConflictException(string matchId)
+        : this(matchId, "processing")
+    {
+    }
+
+    public MatchLifecycleConflictException(string matchId, string operation)
+        : base($"Match lifecycle changed while {operation} '{matchId}'.")
+    {
+    }
+}

@@ -4,8 +4,8 @@ using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
-using Bolao.Functions.Api;
 using Bolao.Functions.Admin;
+using Bolao.Functions.Api;
 using Bolao.Functions.Domain;
 using Bolao.Functions.Persistence;
 using Bolao.Functions.Rosters;
@@ -318,6 +318,7 @@ public class ParticipantEndpointTests
         public ManagedMatch? CreatedManualMatch { get; private set; }
         public int RecalculationCount { get; private set; }
         public bool DuplicateManualMatch { get; set; }
+        public Exception? CreateFailure { get; set; }
         public (string Id, UpdateAdminMatchRequest Request)? UpdatedMatch { get; private set; }
         public HashSet<string> EliminatedTeams { get; } = [];
         public ManualResultDraft? SavedResult { get; private set; }
@@ -420,6 +421,10 @@ public class ParticipantEndpointTests
 
         public Task<ManagedMatch> CreateManualAsync(ManagedMatch managedMatch, CancellationToken cancellationToken)
         {
+            if (CreateFailure is not null)
+            {
+                throw CreateFailure;
+            }
             if (DuplicateManualMatch)
             {
                 throw new ConditionalCheckFailedException("duplicate");

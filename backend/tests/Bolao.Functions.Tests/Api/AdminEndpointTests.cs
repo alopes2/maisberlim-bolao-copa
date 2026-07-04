@@ -107,6 +107,19 @@ public class AdminEndpointTests
     }
 
     [Fact]
+    public async Task CreateLifecycleConflictKeepsStableConflict()
+    {
+        await using var factory = new ParticipantEndpointTests.ApiFactory();
+        factory.State.CreateFailure = new MatchLifecycleConflictException("bra-arg-05-07", "creating");
+
+        var response = await AdminClient(factory).PostAsJsonAsync("/admin/matches",
+            new CreateAdminMatchRequest(ParticipantEndpointTests.ApiFactory.Kickoff, "BRA", "ARG"));
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        await AssertCode(response, "match_lifecycle_conflict");
+    }
+
+    [Fact]
     public async Task UpdateAllowsExistingEliminatedTeam()
     {
         await using var factory = new ParticipantEndpointTests.ApiFactory();

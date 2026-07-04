@@ -51,6 +51,10 @@ public static class AdminEndpoints
             {
                 return Problem(StatusCodes.Status409Conflict, "match_exists", $"Match '{matchId}' already exists.");
             }
+            catch (MatchLifecycleConflictException exception)
+            {
+                return Problem(StatusCodes.Status409Conflict, "match_lifecycle_conflict", exception.Message);
+            }
         });
 
         admin.MapPut("/matches/{matchId}", async (

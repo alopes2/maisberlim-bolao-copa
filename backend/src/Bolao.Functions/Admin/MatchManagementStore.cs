@@ -109,8 +109,6 @@ public class DynamoMatchManagementStore(
                 {
                     throw new ConditionalCheckFailedException($"Match '{match.Id}' already exists.");
                 }
-
-                logger.LogError(exception, "Error creating match {MatchId}", match.Id);
             }
             catch (TransactionCanceledException)
             {
@@ -122,7 +120,7 @@ public class DynamoMatchManagementStore(
             }
         }
 
-        throw new MatchLifecycleConflictException(match.Id);
+        throw new MatchLifecycleConflictException(match.Id, "creating");
     }
 
     public async Task<MatchLifecycleResult> FinishAsync(
@@ -220,7 +218,7 @@ public class DynamoMatchManagementStore(
             }
         }
 
-        throw new MatchLifecycleConflictException(matchId);
+        throw new MatchLifecycleConflictException(matchId, "finishing");
     }
 
     private async Task<ManagedMatch?> GetAsync(string matchId, CancellationToken cancellationToken)
