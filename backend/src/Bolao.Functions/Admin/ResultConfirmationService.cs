@@ -4,7 +4,11 @@ using Bolao.Functions.Persistence;
 
 namespace Bolao.Functions.Admin;
 
-public record ConfirmationClaim(int ResultVersion, ConfirmedResult Result);
+public record ConfirmationClaim(
+    int ResultVersion,
+    ConfirmedResult Result,
+    int? PreviousResultVersion = null,
+    ConfirmedResult? PreviousResult = null);
 
 public class ConfirmedResultPublisher(ResultPublicationService publication)
     : IConfirmedResultPublisher
@@ -15,6 +19,16 @@ public class ConfirmedResultPublisher(ResultPublicationService publication)
         ConfirmedResult result,
         CancellationToken cancellationToken) =>
         publication.PublishAsync(matchId, resultVersion, result, cancellationToken);
+
+    public Task ReviseAsync(
+        string matchId,
+        string previousVersion,
+        string version,
+        ConfirmedResult result,
+        ConfirmedResult previousResult,
+        CancellationToken cancellationToken) =>
+        publication.PublishAsync(
+            matchId, version, result, previousVersion, previousResult, cancellationToken);
 }
 
 public class ResultConfirmationService(
@@ -50,11 +64,21 @@ public class ResultConfirmationService(
                 confirmedBySub,
                 timeProvider.GetUtcNow(),
                 cancellationToken);
-            await publisher.PublishAsync(
-                matchId,
-                claim.ResultVersion.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                claim.Result,
-                cancellationToken);
+            var resultVersion = claim.ResultVersion.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            if (claim.PreviousResultVersion is int previousVersion && claim.PreviousResult is not null)
+            {
+                await publisher.ReviseAsync(
+                    matchId,
+                    previousVersion.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    resultVersion,
+                    claim.Result,
+                    claim.PreviousResult,
+                    cancellationToken);
+            }
+            else
+            {
+                await publisher.PublishAsync(matchId, resultVersion, claim.Result, cancellationToken);
+            }
 
             logger.LogInformation(
                 "Confirmed result for match {MatchId} at version {ResultVersion}", safeMatchId, claim.ResultVersion);

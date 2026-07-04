@@ -118,10 +118,16 @@ public class DynamoAdminApi(
                 TableName = options.MatchesTableName,
                 Key = Key(matchId),
                 UpdateExpression = "SET ManualResultDraft = :result",
-                ConditionExpression = "attribute_exists(MatchId) AND attribute_not_exists(PublishedResultVersion)",
+                ConditionExpression = "attribute_exists(MatchId) AND "
+                    + "(attribute_not_exists(PublishedResultVersion) OR #status = :active)",
+                ExpressionAttributeNames = new Dictionary<string, string>
+                {
+                    ["#status"] = "Status"
+                },
                 ExpressionAttributeValues = new Dictionary<string, AttributeValue>
                 {
-                    [":result"] = new(JsonSerializer.Serialize(result))
+                    [":result"] = new(JsonSerializer.Serialize(result)),
+                    [":active"] = new("Active")
                 }
             }, cancellationToken);
         }
@@ -217,12 +223,58 @@ public class DynamoResultConfirmationStore(
         {
             var existing = await GetAsync(matchId, cancellationToken);
             var claim = Claim(existing);
-            if (JsonSerializer.Serialize(claim.Result) != JsonSerializer.Serialize(result))
+            if (JsonSerializer.Serialize(claim.Result) == JsonSerializer.Serialize(result))
+            {
+                return claim;
+            }
+
+            if (existing.GetValueOrDefault("Status")?.S != "Active"
+                || claim.PreviousResultVersion != claim.ResultVersion
+                || claim.PreviousResult is null)
             {
                 throw new ResultAlreadyPublishedException(matchId);
             }
 
-            return claim;
+            try
+            {
+                var response = await client.UpdateItemAsync(new UpdateItemRequest
+                {
+                    TableName = options.MatchesTableName,
+                    Key = DynamoAdminApiKey(matchId),
+                    UpdateExpression = "SET ConfirmedBySub = :sub, ConfirmedAt = :at, "
+                        + "ConfirmedSnapshot = :snapshot, ResultVersion = ResultVersion + :one",
+                    ConditionExpression = "#status = :active AND ResultVersion = :currentVersion "
+                        + "AND PublishedResultVersion = :publishedVersion "
+                        + "AND ConfirmedSnapshot = :previousSnapshot",
+                    ExpressionAttributeNames = new Dictionary<string, string>
+                    {
+                        ["#status"] = "Status"
+                    },
+                    ExpressionAttributeValues = new Dictionary<string, AttributeValue>
+                    {
+                        [":sub"] = new(confirmedBySub),
+                        [":at"] = new(confirmedAt.ToString("O", CultureInfo.InvariantCulture)),
+                        [":snapshot"] = new(JsonSerializer.Serialize(result)),
+                        [":previousSnapshot"] = existing["ConfirmedSnapshot"],
+                        [":currentVersion"] = new() { N = claim.ResultVersion.ToString(CultureInfo.InvariantCulture) },
+                        [":publishedVersion"] = new(claim.PreviousResultVersion.Value.ToString(CultureInfo.InvariantCulture)),
+                        [":active"] = new("Active"),
+                        [":one"] = new() { N = "1" }
+                    },
+                    ReturnValues = ReturnValue.ALL_NEW
+                }, cancellationToken);
+                return Claim(response.Attributes);
+            }
+            catch (ConditionalCheckFailedException)
+            {
+                var latest = Claim(await GetAsync(matchId, cancellationToken));
+                if (JsonSerializer.Serialize(latest.Result) == JsonSerializer.Serialize(result))
+                {
+                    return latest;
+                }
+
+                throw new ResultAlreadyPublishedException(matchId);
+            }
         }
     }
 
@@ -243,7 +295,13 @@ public class DynamoResultConfirmationStore(
 
     private static ConfirmationClaim Claim(IReadOnlyDictionary<string, AttributeValue> item) => new(
         int.Parse(item["ResultVersion"].N, CultureInfo.InvariantCulture),
-        JsonSerializer.Deserialize<ConfirmedResult>(item["ConfirmedSnapshot"].S)!);
+        JsonSerializer.Deserialize<ConfirmedResult>(item["ConfirmedSnapshot"].S)!,
+        item.TryGetValue("PublishedResultVersion", out var version)
+            ? int.Parse(version.S, CultureInfo.InvariantCulture)
+            : null,
+        item.TryGetValue("ConfirmedResult", out var result)
+            ? JsonSerializer.Deserialize<ConfirmedResult>(result.S)
+            : null);
 
     private static Dictionary<string, AttributeValue> DynamoAdminApiKey(string matchId) => new()
     {

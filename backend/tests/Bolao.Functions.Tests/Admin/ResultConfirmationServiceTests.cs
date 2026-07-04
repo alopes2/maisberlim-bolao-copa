@@ -182,6 +182,37 @@ public class ResultConfirmationServiceTests
     }
 
     [Fact]
+    public async Task RevisionPublishesAgainstPreviousResultVersion()
+    {
+        var previous = Result with { HomeGoals = 1, AwayGoals = 1 };
+        var store = Substitute.For<IResultConfirmationStore>();
+        store.GetManualResultAsync("match-1", Arg.Any<CancellationToken>())
+            .Returns(new ManualResultForConfirmation("BRA", "ARG", Draft(
+                goals:
+                [
+                    new ManualGoal("BRA", "BRA:10"),
+                    new ManualGoal("BRA", "BRA:10"),
+                    new ManualGoal("ARG", "ARG:9")
+                ],
+                homeYellowCards: 2,
+                awayYellowCards: 3,
+                awayRedCards: 1)));
+        store.ClaimConfirmationAsync(
+                "match-1", Arg.Any<ConfirmedResult>(), "admin-1", Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
+            .Returns(new ConfirmationClaim(2, Result, 1, previous));
+        var publisher = Substitute.For<IConfirmedResultPublisher>();
+        var service = new ResultConfirmationService(
+            store, RosterValidator(), publisher, TimeProvider.System,
+            Substitute.For<ILogger<ResultConfirmationService>>());
+
+        await service.ConfirmAsync("match-1", "admin-1", default);
+
+        await publisher.Received(1).ReviseAsync(
+            "match-1", "1", "2", Result, previous, Arg.Any<CancellationToken>());
+        await publisher.DidNotReceiveWithAnyArgs().PublishAsync(default!, default!, default!, default);
+    }
+
+    [Fact]
     public async Task MissingManualDraftIsInvalidResult()
     {
         var store = Substitute.For<IResultConfirmationStore>();

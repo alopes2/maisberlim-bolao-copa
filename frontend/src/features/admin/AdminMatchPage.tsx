@@ -13,6 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -72,12 +73,16 @@ export function AdminMatchPage({ api, matchId }: { api: ResultAdminApi; matchId:
   }
 
   const draft = resultQuery.data
+  const revisionLocked = match.resultConfirmed && match.status !== 'Active'
 
   return (
     <main className="mx-auto flex min-h-svh w-full max-w-3xl flex-col gap-4 p-4 sm:p-8">
       <Card>
         <CardHeader>
-          <CardTitle>Apuração do jogo</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle>Apuração do jogo</CardTitle>
+            {match.resultConfirmed ? <Badge variant="secondary">Confirmado</Badge> : null}
+          </div>
           <CardDescription>
             {match.homeTeamFifaCode} × {match.awayTeamFifaCode}. Revise o resultado informado manualmente antes de publicar os pontos.
           </CardDescription>
@@ -99,13 +104,19 @@ export function AdminMatchPage({ api, matchId }: { api: ResultAdminApi; matchId:
           ) : null}
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button disabled={editorDirty || save.isPending || confirm.isPending}>Confirmar resultado</Button>
+              <Button disabled={revisionLocked || editorDirty || save.isPending || confirm.isPending}>
+                {match.resultConfirmed ? 'Revisar resultado' : 'Confirmar resultado'}
+              </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Publicar resultado e ranking?</AlertDialogTitle>
+                <AlertDialogTitle>
+                  {match.resultConfirmed ? 'Revisar resultado e ranking?' : 'Publicar resultado e ranking?'}
+                </AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta ação calcula os pontos, publica o ranking e inicia a notificação do vencedor.
+                  {match.resultConfirmed
+                    ? 'Esta ação substitui os pontos publicados pelos pontos do resultado revisado.'
+                    : 'Esta ação calcula os pontos e publica o ranking.'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

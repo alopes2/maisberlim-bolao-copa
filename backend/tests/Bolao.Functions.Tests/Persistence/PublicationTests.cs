@@ -58,6 +58,28 @@ public class PublicationTests
     }
 
     [Fact]
+    public async Task RevisionReplacesPreviousPointsAndIsRetrySafe()
+    {
+        var repositories = new InMemoryRepositories();
+        await repositories.UpsertAsync(
+            "match-1", "user-1", Prediction(), DateTimeOffset.Parse("2026-06-28T10:00:00Z"), default);
+        var service = new ResultPublicationService(repositories, repositories);
+        var original = Result();
+        var revised = original with { HomeGoals = 0, AwayGoals = 1, FirstScorerKey = "ARG:9" };
+        await service.PublishAsync("match-1", "1", original, default);
+
+        await service.PublishAsync("match-1", "2", revised, "1", original, default);
+        await service.PublishAsync("match-1", "2", revised, "1", original, default);
+
+        var standing = await repositories.GetStandingAsync("user-1", default);
+        var revisedScore = ScoreCalculator.Score(Prediction(), revised);
+        standing!.TotalPoints.Should().Be(revisedScore.Total);
+        standing.ExactScoreCount.Should().Be(revisedScore.ExactScore ? 1 : 0);
+        standing.FirstScorerCount.Should().Be(revisedScore.FirstScorer == 3 ? 1 : 0);
+        standing.AppliedMatches.Should().ContainSingle().Which.Should().Be("match-1");
+    }
+
+    [Fact]
     public async Task PenaltyDeductionStillIncrementsExactScoreCount()
     {
         var repositories = new InMemoryRepositories();

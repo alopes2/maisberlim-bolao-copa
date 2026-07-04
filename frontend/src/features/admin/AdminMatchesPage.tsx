@@ -20,6 +20,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -224,102 +230,6 @@ export function AdminMatchesPage({ api }: { api: AdminApi }) {
         </CardContent>
       </Card>
 
-      {editingMatchId && editForm ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Editar jogo cadastrado</CardTitle>
-            <CardDescription>ID do jogo: {editingMatchId}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleEditSubmit} noValidate>
-              <Field
-                label="Data e hora do jogo em Europe/Berlin"
-                type="datetime-local"
-                value={editForm.kickoff}
-                onChange={value => setEditForm(current => current ? { ...current, kickoff: value } : current)}
-                invalid={Boolean(editValidation && (!editForm.kickoff || editValidation.includes('Europe/Berlin') || editValidation === 'Data e hora inválidas.'))}
-                errorId="edit-form-error"
-              />
-              <TeamSelect
-                label="Mandante do jogo"
-                teams={teamsQuery.data}
-                value={editForm.homeTeamFifaCode}
-                excludedCode={editForm.awayTeamFifaCode}
-                includeCode={matchesQuery.data.matches.find(match => match.id === editingMatchId)?.homeTeamFifaCode}
-                onChange={value => setEditForm(current => current ? { ...current, homeTeamFifaCode: value } : current)}
-                invalid={Boolean(editValidation && !editForm.homeTeamFifaCode.trim())}
-                errorId="edit-form-error"
-              />
-              <TeamSelect
-                label="Visitante do jogo"
-                teams={teamsQuery.data}
-                value={editForm.awayTeamFifaCode}
-                excludedCode={editForm.homeTeamFifaCode}
-                includeCode={matchesQuery.data.matches.find(match => match.id === editingMatchId)?.awayTeamFifaCode}
-                onChange={value => setEditForm(current => current ? { ...current, awayTeamFifaCode: value } : current)}
-                invalid={Boolean(editValidation && !editForm.awayTeamFifaCode.trim())}
-                errorId="edit-form-error"
-              />
-              <div className="flex flex-col items-start gap-2 sm:col-span-2">
-                {editValidation ? <p id="edit-form-error" className="text-sm text-destructive" role="alert">{editValidation}</p> : null}
-                {update.isError ? <p className="text-sm text-destructive" role="alert">{errorMessage(update.error)}</p> : null}
-                <div className="flex gap-2">
-                  <Button type="submit" disabled={update.isPending}>
-                    {update.isPending ? 'Salvando…' : 'Salvar alterações'}
-                  </Button>
-                  <Button type="button" variant="outline" onClick={cancelEditing} disabled={update.isPending}>
-                    Cancelar edição
-                  </Button>
-                </div>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      ) : null}
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Gerenciar seleções</CardTitle>
-          <CardDescription>Remova seleções eliminadas das opções para novos jogos.</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-2">
-          {teamErrors.size > 0 ? (
-            <div className="text-sm text-destructive" role="alert">
-              {[...teamErrors].map(([fifaCode, message]) => <p key={fifaCode}>{message}</p>)}
-            </div>
-          ) : null}
-          {teamsQuery.data.map(team => {
-            const isChanging = pendingTeamCodes.has(team.fifaCode)
-            return (
-              <div key={team.fifaCode} className="flex items-center justify-between gap-3 rounded-lg border p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span>{team.flagIcon} {team.name} ({team.fifaCode})</span>
-                  {team.eliminated ? <Badge variant="secondary">Eliminada</Badge> : null}
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={isChanging}
-                  aria-label={team.eliminated ? `Restaurar ${team.name}` : `Marcar ${team.name} como eliminada`}
-                  onClick={() => {
-                    setPendingTeamCodes(current => new Set(current).add(team.fifaCode))
-                    setTeamErrors(current => {
-                      const next = new Map(current)
-                      next.delete(team.fifaCode)
-                      return next
-                    })
-                    updateTeam.mutate({ fifaCode: team.fifaCode, eliminated: !team.eliminated })
-                  }}
-                >
-                  {team.eliminated ? 'Restaurar' : 'Marcar eliminada'}
-                </Button>
-              </div>
-            )
-          })}
-        </CardContent>
-      </Card>
-
       <Card>
         <CardHeader>
           <CardTitle>Jogos</CardTitle>
@@ -336,58 +246,168 @@ export function AdminMatchesPage({ api }: { api: AdminApi }) {
           {finish.isError ? <p className="text-sm text-destructive" role="alert">{errorMessage(finish.error)}</p> : null}
           {update.isSuccess ? <p className="text-sm" role="status">Jogo atualizado.</p> : null}
           {sortedMatches.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum jogo cadastrado.</p> : null}
-          {sortedMatches.map(match => (
-            <div key={match.id} className="flex flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-col gap-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{match.homeTeamFifaCode} × {match.awayTeamFifaCode}</span>
-                  {match.status ? <Badge variant="secondary">{statusLabels[match.status]}</Badge> : null}
-                </div>
-                <span className="text-sm text-muted-foreground">
-                  {new Date(match.kickoff).toLocaleString('pt-BR')} · {match.id}
-                </span>
-              </div>
-              <div className="flex flex-col items-start gap-2 sm:items-end">
-                <Button type="button" variant="outline" size="sm" onClick={() => startEditing(match)}>
-                  Editar jogo
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <a href={`/admin?matchId=${encodeURIComponent(match.id)}`}>Apurar resultado</a>
-                </Button>
-                {match.status === 'Active' ? (
+          {sortedMatches.map(match => {
+            const isEditing = editingMatchId === match.id && editForm
+            return (
+              <div key={match.id} className="rounded-lg border p-3">
+                {isEditing ? (
                   <>
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button size="sm" disabled={!match.resultConfirmed || finish.isPending}>
-                          Finalizar jogo atual
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Finalizar o jogo atual?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            O jogo será encerrado e o próximo jogo cadastrado será ativado.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => finish.mutate(match.id)}>
-                            Finalizar jogo
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                    {!match.resultConfirmed ? (
-                      <p className="text-sm text-muted-foreground">
-                        Confirme o resultado antes de finalizar o jogo.
-                      </p>
-                    ) : null}
+                    <div className="mb-4 flex flex-col gap-1">
+                      <span className="font-medium">Editar jogo cadastrado</span>
+                      <span className="text-sm text-muted-foreground">ID do jogo: {match.id}</span>
+                    </div>
+                    <form className="grid gap-4 sm:grid-cols-2" onSubmit={handleEditSubmit} noValidate>
+                      <Field
+                        label="Data e hora do jogo em Europe/Berlin"
+                        type="datetime-local"
+                        value={editForm.kickoff}
+                        onChange={value => setEditForm(current => current ? { ...current, kickoff: value } : current)}
+                        invalid={Boolean(editValidation && (!editForm.kickoff || editValidation.includes('Europe/Berlin') || editValidation === 'Data e hora inválidas.'))}
+                        errorId="edit-form-error"
+                      />
+                      <TeamSelect
+                        label="Mandante do jogo"
+                        teams={teamsQuery.data}
+                        value={editForm.homeTeamFifaCode}
+                        excludedCode={editForm.awayTeamFifaCode}
+                        includeCode={match.homeTeamFifaCode}
+                        onChange={value => setEditForm(current => current ? { ...current, homeTeamFifaCode: value } : current)}
+                        invalid={Boolean(editValidation && !editForm.homeTeamFifaCode.trim())}
+                        errorId="edit-form-error"
+                      />
+                      <TeamSelect
+                        label="Visitante do jogo"
+                        teams={teamsQuery.data}
+                        value={editForm.awayTeamFifaCode}
+                        excludedCode={editForm.homeTeamFifaCode}
+                        includeCode={match.awayTeamFifaCode}
+                        onChange={value => setEditForm(current => current ? { ...current, awayTeamFifaCode: value } : current)}
+                        invalid={Boolean(editValidation && !editForm.awayTeamFifaCode.trim())}
+                        errorId="edit-form-error"
+                      />
+                      <div className="flex flex-col items-start gap-2 sm:col-span-2">
+                        {editValidation ? <p id="edit-form-error" className="text-sm text-destructive" role="alert">{editValidation}</p> : null}
+                        {update.isError ? <p className="text-sm text-destructive" role="alert">{errorMessage(update.error)}</p> : null}
+                        <div className="flex gap-2">
+                          <Button type="submit" disabled={update.isPending}>
+                            {update.isPending ? 'Salvando…' : 'Salvar alterações'}
+                          </Button>
+                          <Button type="button" variant="outline" onClick={cancelEditing} disabled={update.isPending}>
+                            Cancelar edição
+                          </Button>
+                        </div>
+                      </div>
+                    </form>
                   </>
-                ) : null}
+                ) : (
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium">{match.homeTeamFifaCode} × {match.awayTeamFifaCode}</span>
+                        {match.status ? <Badge variant="secondary">{statusLabels[match.status]}</Badge> : null}
+                        {match.resultConfirmed ? <Badge variant="secondary">Confirmado</Badge> : null}
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {new Date(match.kickoff).toLocaleString('pt-BR')} · {match.id}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-start gap-2 sm:items-end">
+                      <Button type="button" variant="outline" size="sm" onClick={() => startEditing(match)}>
+                        Editar jogo
+                      </Button>
+                      <Button asChild variant="outline" size="sm">
+                        <a href={`/admin?matchId=${encodeURIComponent(match.id)}`}>Apurar resultado</a>
+                      </Button>
+                      {match.status === 'Active' ? (
+                        <>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" disabled={!match.resultConfirmed || finish.isPending}>
+                                Finalizar jogo atual
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Finalizar o jogo atual?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  O jogo será encerrado e o próximo jogo cadastrado será ativado.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => finish.mutate(match.id)}>
+                                  Finalizar jogo
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          {!match.resultConfirmed ? (
+                            <p className="text-sm text-muted-foreground">
+                              Confirme o resultado antes de finalizar o jogo.
+                            </p>
+                          ) : null}
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </CardContent>
+      </Card>
+
+      <Card>
+        <Accordion type="single" collapsible>
+          <AccordionItem value="teams" className="border-none">
+            <CardHeader>
+              <AccordionTrigger className="py-0 hover:no-underline" aria-label="Gerenciar seleções">
+                <div className="flex flex-col gap-1">
+                  <CardTitle>Gerenciar seleções</CardTitle>
+                  <CardDescription>Remova seleções eliminadas das opções para novos jogos.</CardDescription>
+                </div>
+              </AccordionTrigger>
+            </CardHeader>
+            <AccordionContent className="pb-0">
+              <CardContent className="flex flex-col gap-2">
+                {teamErrors.size > 0 ? (
+                  <div className="text-sm text-destructive" role="alert">
+                    {[...teamErrors].map(([fifaCode, message]) => <p key={fifaCode}>{message}</p>)}
+                  </div>
+                ) : null}
+                {teamsQuery.data.map(team => {
+                  const isChanging = pendingTeamCodes.has(team.fifaCode)
+                  return (
+                    <div key={team.fifaCode} className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span>{team.flagIcon} {team.name} ({team.fifaCode})</span>
+                        {team.eliminated ? <Badge variant="secondary">Eliminada</Badge> : null}
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={isChanging}
+                        aria-label={team.eliminated ? `Restaurar ${team.name}` : `Marcar ${team.name} como eliminada`}
+                        onClick={() => {
+                          setPendingTeamCodes(current => new Set(current).add(team.fifaCode))
+                          setTeamErrors(current => {
+                            const next = new Map(current)
+                            next.delete(team.fifaCode)
+                            return next
+                          })
+                          updateTeam.mutate({ fifaCode: team.fifaCode, eliminated: !team.eliminated })
+                        }}
+                      >
+                        {team.eliminated ? 'Restaurar' : 'Marcar eliminada'}
+                      </Button>
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </Card>
     </main>
   )

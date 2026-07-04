@@ -82,6 +82,44 @@ public class InMemoryRepositories
         return Task.CompletedTask;
     }
 
+    public Task ReviseAsync(
+        string matchId,
+        string previousResultVersion,
+        string resultVersion,
+        ConfirmedResult result,
+        IReadOnlyList<StandingAdjustment> adjustments,
+        CancellationToken cancellationToken)
+    {
+        lock (gate)
+        {
+            if (publishedVersions.GetValueOrDefault(matchId) == resultVersion)
+            {
+                return Task.CompletedTask;
+            }
+
+            if (publishedVersions.GetValueOrDefault(matchId) != previousResultVersion)
+            {
+                throw new ResultAlreadyPublishedException(matchId);
+            }
+
+            foreach (var adjustment in adjustments)
+            {
+                var current = standings[adjustment.ParticipantId];
+                standings[adjustment.ParticipantId] = current with
+                {
+                    TotalPoints = current.TotalPoints + adjustment.Points,
+                    ExactScoreCount = current.ExactScoreCount + adjustment.ExactScoreCount,
+                    FirstScorerCount = current.FirstScorerCount + adjustment.FirstScorerCount
+                };
+            }
+
+            confirmedResults[matchId] = result;
+            publishedVersions[matchId] = resultVersion;
+        }
+
+        return Task.CompletedTask;
+    }
+
     private void ApplyStandingUpdate(string matchId, StandingUpdate update)
     {
         if (standings.TryGetValue(update.ParticipantId, out var current)

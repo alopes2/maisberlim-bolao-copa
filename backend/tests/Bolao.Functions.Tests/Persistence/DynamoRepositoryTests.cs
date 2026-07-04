@@ -267,6 +267,38 @@ public class DynamoRepositoryTests
             .TransactWriteItemsAsync(default!, default);
     }
 
+    [Fact]
+    public async Task ResultRevisionTransactsStandingDeltasAndNewPublishedVersion()
+    {
+        var client = Substitute.For<IAmazonDynamoDB>();
+        client.GetItemAsync(Arg.Any<GetItemRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new GetItemResponse
+            {
+                Item = new Dictionary<string, AttributeValue>
+                {
+                    ["PublishedResultVersion"] = new("1")
+                }
+            });
+        TransactWriteItemsRequest? request = null;
+        client.TransactWriteItemsAsync(
+                Arg.Do<TransactWriteItemsRequest>(value => request = value),
+                Arg.Any<CancellationToken>())
+            .Returns(new TransactWriteItemsResponse());
+        var repository = new DynamoResultRepository(client, Options());
+
+        await repository.ReviseAsync(
+            "match-1", "1", "2", Result(),
+            [new StandingAdjustment("user-1", -7, -1, 0)], default);
+
+        var standing = request!.TransactItems.Single(item => item.Update.TableName == "standings").Update;
+        standing.ExpressionAttributeValues[":points"].N.Should().Be("-7");
+        standing.ExpressionAttributeValues[":exact"].N.Should().Be("-1");
+        standing.ConditionExpression.Should().Contain(":previousVersion");
+        var match = request.TransactItems.Single(item => item.Update.TableName == "matches").Update;
+        match.ConditionExpression.Should().Be("PublishedResultVersion = :previousVersion");
+        match.ExpressionAttributeValues[":version"].S.Should().Be("2");
+    }
+
     private static DynamoDbOptions Options()
     {
         return new DynamoDbOptions

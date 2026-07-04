@@ -98,6 +98,29 @@ public class DynamoAdminApiTests
     }
 
     [Fact]
+    public async Task SaveResultAllowsRevisionForPublishedActiveMatch()
+    {
+        var item = MatchItem();
+        item["Status"] = new("Active");
+        item["PublishedResultVersion"] = new("1");
+        var client = Substitute.For<IAmazonDynamoDB>();
+        client.GetItemAsync(Arg.Any<GetItemRequest>(), default)
+            .Returns(new GetItemResponse { Item = item });
+        UpdateItemRequest? request = null;
+        client.UpdateItemAsync(
+                Arg.Do<UpdateItemRequest>(value => request = value),
+                default)
+            .Returns(new UpdateItemResponse());
+
+        await Service(client).SaveResultAsync(
+            "match-1", new ManualResultDraft([], 0, 0, 0, 0, null), default);
+
+        request!.ConditionExpression.Should().Contain("#status = :active");
+        request.ExpressionAttributeNames["#status"].Should().Be("Status");
+        request.ExpressionAttributeValues[":active"].S.Should().Be("Active");
+    }
+
+    [Fact]
     public async Task ConfirmationStoreMissingMatchThrowsMatchNotFound()
     {
         var client = Substitute.For<IAmazonDynamoDB>();
@@ -130,6 +153,43 @@ public class DynamoAdminApiTests
             "match-1", result, "admin-sub", DateTimeOffset.UtcNow, default);
 
         claim.Result.Should().BeEquivalentTo(result);
+    }
+
+    [Fact]
+    public async Task ConfirmationStoreClaimsRevisionForPublishedActiveMatch()
+    {
+        var previous = new ConfirmedResult(
+            2, 1, "BRA:10", new HashSet<string> { "BRA:10" }, new HashSet<string> { "ARG:9" }, 1, 2, 0, 0);
+        var revised = previous with { HomeGoals = 1, AwayGoals = 1 };
+        var existing = new Dictionary<string, AttributeValue>
+        {
+            ["Status"] = new("Active"),
+            ["ResultVersion"] = new() { N = "1" },
+            ["PublishedResultVersion"] = new("1"),
+            ["ConfirmedSnapshot"] = new(JsonSerializer.Serialize(previous)),
+            ["ConfirmedResult"] = new(JsonSerializer.Serialize(previous))
+        };
+        var revisedItem = new Dictionary<string, AttributeValue>(existing)
+        {
+            ["ResultVersion"] = new() { N = "2" },
+            ["ConfirmedSnapshot"] = new(JsonSerializer.Serialize(revised))
+        };
+        var client = Substitute.For<IAmazonDynamoDB>();
+        client.UpdateItemAsync(Arg.Any<UpdateItemRequest>(), default)
+            .Returns(
+                _ => throw new ConditionalCheckFailedException("already confirmed"),
+                _ => new UpdateItemResponse { Attributes = revisedItem });
+        client.GetItemAsync(Arg.Any<GetItemRequest>(), default)
+            .Returns(new GetItemResponse { Item = existing });
+        var store = new DynamoResultConfirmationStore(client, Options());
+
+        var claim = await store.ClaimConfirmationAsync(
+            "match-1", revised, "admin-sub", DateTimeOffset.UtcNow, default);
+
+        claim.ResultVersion.Should().Be(2);
+        claim.Result.Should().BeEquivalentTo(revised);
+        claim.PreviousResultVersion.Should().Be(1);
+        claim.PreviousResult.Should().BeEquivalentTo(previous);
     }
 
     private static DynamoAdminApi Service(IAmazonDynamoDB client) =>

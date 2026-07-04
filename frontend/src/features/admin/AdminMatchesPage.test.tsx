@@ -106,6 +106,18 @@ describe('AdminMatchesPage', () => {
     expect(screen.queryByLabelText('ID do fixture')).not.toBeInTheDocument()
   })
 
+  it('shows confirmation status only for confirmed matches', async () => {
+    renderPage(api())
+
+    const links = await screen.findAllByRole('link', { name: 'Apurar resultado' })
+    const rows = links.map(link => link.closest('.rounded-lg') as HTMLElement)
+
+    expect(within(rows[0]).getByText('Confirmado')).toBeInTheDocument()
+    expect(within(rows[1]).getByText('Confirmado')).toBeInTheDocument()
+    expect(within(rows[2]).queryByText('Confirmado')).not.toBeInTheDocument()
+    expect(within(rows[3]).getByText('Confirmado')).toBeInTheDocument()
+  })
+
   it('creates a match from available teams without asking for an ID', async () => {
     const user = userEvent.setup()
     const createAdminMatch = vi.fn().mockResolvedValue(undefined)
@@ -135,11 +147,14 @@ describe('AdminMatchesPage', () => {
     const updateAdminMatch = vi.fn().mockResolvedValue(undefined)
     const { invalidateQueries } = renderPage(api({ updateAdminMatch }))
 
-    await user.click((await screen.findAllByRole('button', { name: 'Editar jogo' }))[1])
+    const editButton = (await screen.findAllByRole('button', { name: 'Editar jogo' }))[1]
+    const matchRow = editButton.closest('.rounded-lg') as HTMLElement
+    await user.click(editButton)
 
-    const immutableId = screen.getByText('ID do jogo: active')
+    const immutableId = within(matchRow).getByText('ID do jogo: active')
     expect(immutableId).toBeInTheDocument()
-    expect(within(immutableId.closest('[data-slot="card"]')!).queryByRole('textbox', { name: 'ID do jogo' })).not.toBeInTheDocument()
+    expect(within(matchRow).queryByRole('button', { name: 'Editar jogo' })).not.toBeInTheDocument()
+    expect(within(matchRow).queryByRole('textbox', { name: 'ID do jogo' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('Data e hora do jogo em Europe/Berlin')).toHaveValue('2026-07-02T20:00')
 
     await user.clear(screen.getByLabelText('Data e hora do jogo em Europe/Berlin'))
@@ -160,6 +175,16 @@ describe('AdminMatchesPage', () => {
     expect(await screen.findByText('Jogo atualizado.')).toBeInTheDocument()
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin-matches'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['current-match'] })
+  })
+
+  it('shows team management as a collapsed accordion below the matches', async () => {
+    renderPage(api())
+
+    const matchesHeading = await screen.findByText('Jogos')
+    const teamsTrigger = screen.getByRole('button', { name: 'Gerenciar seleções' })
+    expect(teamsTrigger).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('button', { name: 'Marcar Brasil como eliminada' })).not.toBeInTheDocument()
+    expect(matchesHeading.compareDocumentPosition(teamsTrigger) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   })
 
   it('cancels editing without saving', async () => {
@@ -208,7 +233,8 @@ describe('AdminMatchesPage', () => {
     const setTeamEliminated = vi.fn().mockImplementation(() => new Promise<void>(resolve => { resolveUpdate = resolve }))
     const { invalidateQueries } = renderPage(api({ setTeamEliminated }))
 
-    const management = (await screen.findByText('Gerenciar seleções')).closest<HTMLElement>('[data-slot="card"]')!
+    await user.click(await screen.findByRole('button', { name: 'Gerenciar seleções' }))
+    const management = screen.getByRole('button', { name: 'Gerenciar seleções' }).closest<HTMLElement>('[data-slot="card"]')!
     expect(within(management).getAllByText('Eliminada')).toHaveLength(2)
     const eliminateBrasil = within(management).getByRole('button', { name: 'Marcar Brasil como eliminada' })
     const restoreFrance = within(management).getByRole('button', { name: 'Restaurar França' })
@@ -228,6 +254,7 @@ describe('AdminMatchesPage', () => {
       new Promise<void>(resolve => { resolvers.set(fifaCode, resolve) }))
     renderPage(api({ setTeamEliminated }))
 
+    await user.click(await screen.findByRole('button', { name: 'Gerenciar seleções' }))
     const brasil = await screen.findByRole('button', { name: 'Marcar Brasil como eliminada' })
     const argentina = screen.getByRole('button', { name: 'Marcar Argentina como eliminada' })
     const france = screen.getByRole('button', { name: 'Restaurar França' })
@@ -252,6 +279,7 @@ describe('AdminMatchesPage', () => {
       setTeamEliminated: vi.fn().mockRejectedValue(new Error('Não foi possível atualizar a seleção.')),
     }))
 
+    await user.click(await screen.findByRole('button', { name: 'Gerenciar seleções' }))
     await user.click(await screen.findByRole('button', { name: 'Restaurar França' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Não foi possível atualizar a seleção.')

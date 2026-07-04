@@ -20,3 +20,9 @@ public record StandingUpdate(
     string ParticipantId,
     ScoreBreakdown Score,
     DateTimeOffset SubmittedAt);
+
+public record StandingAdjustment(
+    string ParticipantId,
+    int Points,
+    int ExactScoreCount,
+    int FirstScorerCount);

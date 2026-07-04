@@ -39,6 +39,31 @@ describe('AdminMatchPage', () => {
     expect(api.getAdminMatches).toHaveBeenCalledOnce()
   })
 
+  it('shows the confirmed status for a confirmed match', async () => {
+    const api = createApi({
+      getAdminMatches: vi.fn().mockResolvedValue({ matches: [{
+        id: 'match-1', kickoff: '2026-07-02T18:00:00Z', homeTeamFifaCode: 'BRA',
+        awayTeamFifaCode: 'ARG', status: 'Active', resultConfirmed: true,
+      }] }),
+    })
+    renderPage(api)
+
+    expect(await screen.findByText('Confirmado')).toBeVisible()
+    expect(screen.getByRole('button', { name: 'Revisar resultado' })).toBeEnabled()
+  })
+
+  it('does not allow revising a closed match', async () => {
+    const api = createApi({
+      getAdminMatches: vi.fn().mockResolvedValue({ matches: [{
+        id: 'match-1', kickoff: '2026-07-02T18:00:00Z', homeTeamFifaCode: 'BRA',
+        awayTeamFifaCode: 'ARG', status: 'Closed', resultConfirmed: true,
+      }] }),
+    })
+    renderPage(api)
+
+    expect(await screen.findByRole('button', { name: 'Revisar resultado' })).toBeDisabled()
+  })
+
   it('requires saving edits before confirmation and stays gated while saving', async () => {
     const user = userEvent.setup()
     let resolveSave!: () => void

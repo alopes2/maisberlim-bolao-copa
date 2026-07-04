@@ -10,6 +10,14 @@ public interface IResultRepository
         ConfirmedResult result,
         IReadOnlyList<StandingUpdate> updates,
         CancellationToken cancellationToken);
+
+    Task ReviseAsync(
+        string matchId,
+        string previousResultVersion,
+        string resultVersion,
+        ConfirmedResult result,
+        IReadOnlyList<StandingAdjustment> adjustments,
+        CancellationToken cancellationToken);
 }
 
 public class ResultAlreadyPublishedException(string matchId)

@@ -257,6 +257,15 @@ public class E2EState
         confirmedLeaderboard = provisionalRanking;
     }
 
+    public Task ReviseAsync(
+        string matchId,
+        string previousVersion,
+        string version,
+        ConfirmedResult result,
+        ConfirmedResult previousResult,
+        CancellationToken cancellationToken) =>
+        PublishAsync(matchId, version, result, cancellationToken);
+
     public Task NotifyAsync(
         string matchId,
         int version,
