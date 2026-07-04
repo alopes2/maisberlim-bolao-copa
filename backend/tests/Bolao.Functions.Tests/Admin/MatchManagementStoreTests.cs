@@ -4,6 +4,7 @@ using Bolao.Functions.Admin;
 using Bolao.Functions.Domain;
 using Bolao.Functions.Persistence;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 
 namespace Bolao.Functions.Tests.Admin;
@@ -241,7 +242,7 @@ public class MatchManagementStoreTests
         ParticipantsTableName = "participants",
         PredictionsTableName = "predictions",
         StandingsTableName = "standings"
-    });
+    }, Substitute.For<ILogger<DynamoMatchManagementStore>>());
 
     private static ManagedMatch Match(string id, MatchStatus status) => new(
         id, DateTimeOffset.Parse("2026-07-10T18:00:00Z"), "BRA", "ARG", status);

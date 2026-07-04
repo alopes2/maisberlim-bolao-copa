@@ -19,7 +19,8 @@ public record ManagedMatch(
 
 public class DynamoMatchManagementStore(
     IAmazonDynamoDB client,
-    DynamoDbOptions options) : IMatchManagementStore
+    DynamoDbOptions options,
+    ILogger<DynamoMatchManagementStore> logger) : IMatchManagementStore
 {
     private const string LifecycleId = "__match_lifecycle__";
 
@@ -108,6 +109,16 @@ public class DynamoMatchManagementStore(
                 {
                     throw new ConditionalCheckFailedException($"Match '{match.Id}' already exists.");
                 }
+
+                logger.LogError(exception, "Error creating match {MatchId}", match.Id);
+            }
+            catch (TransactionCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating match {MatchId}", match.Id);
             }
         }
 
@@ -198,6 +209,14 @@ public class DynamoMatchManagementStore(
                 {
                     throw new ConfirmedResultRequiredException(matchId);
                 }
+            }
+            catch (TransactionCanceledException)
+            {
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error finishing match {MatchId}", matchId);
             }
         }
 
