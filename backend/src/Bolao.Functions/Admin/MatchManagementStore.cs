@@ -60,31 +60,22 @@ public class DynamoMatchManagementStore(
             {
                 Status = activeMatch is null ? MatchStatus.Active : MatchStatus.Upcoming
             };
-
-            try
+            var items = new List<TransactWriteItem>
             {
-                var items = new List<TransactWriteItem>
+                new() { Put = new Put { TableName = options.MatchesTableName, Item = Item(created), ConditionExpression = "attribute_not_exists(MatchId)" } },
+                new()
                 {
-                    new() { Put = new Put { TableName = options.MatchesTableName, Item = Item(created), ConditionExpression = "attribute_not_exists(MatchId)" } }
-                };
-                if (activeMatch is null)
-                {
-                    items.Add(new TransactWriteItem
-                    {
-                        Update = LifecycleUpdate(created.Id, "attribute_not_exists(ActiveMatchId)")
-                    });
-                }
-                else
-                {
-                    items.Add(new TransactWriteItem
-                    {
-                        Update = LifecycleUpdate(
+                    Update = activeMatch is null
+                        ? LifecycleUpdate(created.Id, "attribute_not_exists(ActiveMatchId)")
+                        : LifecycleUpdate(
                             activeMatch.Id,
                             "attribute_not_exists(ActiveMatchId) OR ActiveMatchId = :current",
                             activeMatch.Id)
-                    });
                 }
+            };
 
+            try
+            {
                 await client.TransactWriteItemsAsync(
                     new TransactWriteItemsRequest { TransactItems = items }, cancellationToken);
                 return created;
@@ -95,14 +86,6 @@ public class DynamoMatchManagementStore(
                 {
                     throw new ConditionalCheckFailedException($"Match '{match.Id}' already exists.");
                 }
-            }
-            catch (TransactionCanceledException)
-            {
-                throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error creating match {MatchId}", match.Id);
             }
         }
 
