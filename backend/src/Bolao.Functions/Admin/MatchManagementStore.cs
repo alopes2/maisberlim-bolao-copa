@@ -49,64 +49,45 @@ public class DynamoMatchManagementStore(
         ManagedMatch match,
         CancellationToken cancellationToken)
     {
-        for (var attempt = 0; attempt < 5; attempt++)
-        {
-            var activeMatch = (await ListAsync(cancellationToken))
-                .Where(candidate => candidate.Status == MatchStatus.Active)
-                .OrderBy(candidate => candidate.Kickoff)
-                .ThenBy(candidate => candidate.Id, StringComparer.Ordinal)
-                .FirstOrDefault();
-            var created = match with
-            {
-                Status = activeMatch is null ? MatchStatus.Active : MatchStatus.Upcoming
-            };
+        var hasActive = (await ListAsync(cancellationToken))
+            .Any(candidate => candidate.Status == MatchStatus.Active);
 
+        if (!hasActive)
+        {
+            var active = match with { Status = MatchStatus.Active };
             try
             {
-                var items = new List<TransactWriteItem>
+                await client.TransactWriteItemsAsync(new TransactWriteItemsRequest
                 {
-                    new() { Put = new Put { TableName = options.MatchesTableName, Item = Item(created), ConditionExpression = "attribute_not_exists(MatchId)" } }
-                };
-                if (activeMatch is null)
-                {
-                    items.Add(new TransactWriteItem
-                    {
-                        Update = LifecycleUpdate(created.Id, "attribute_not_exists(ActiveMatchId)")
-                    });
-                }
-                else
-                {
-                    items.Add(new TransactWriteItem
-                    {
-                        Update = LifecycleUpdate(
-                            activeMatch.Id,
-                            "attribute_not_exists(ActiveMatchId) OR ActiveMatchId = :current",
-                            activeMatch.Id)
-                    });
-                }
-
-                await client.TransactWriteItemsAsync(
-                    new TransactWriteItemsRequest { TransactItems = items }, cancellationToken);
-                return created;
+                    TransactItems =
+                    [
+                        new() { Put = new Put { TableName = options.MatchesTableName, Item = Item(active), ConditionExpression = "attribute_not_exists(MatchId)" } },
+                        new() { Update = LifecycleUpdate(active.Id, "attribute_not_exists(ActiveMatchId)") }
+                    ]
+                }, cancellationToken);
+                return active;
             }
-            catch (TransactionCanceledException exception) when (IsExpectedConcurrencyCancellation(exception))
+            catch (TransactionCanceledException ex) when (IsLifecycleRaceOnly(ex))
             {
-                if (await GetAsync(match.Id, cancellationToken) is not null)
-                {
+                LogCancellation(ex, match.Id, "create-active->fallback-upcoming");
+            }
+            catch (TransactionCanceledException ex)
+            {
+                LogCancellation(ex, match.Id, "create-active");
+                if (ex.CancellationReasons?.FirstOrDefault()?.Code == "ConditionalCheckFailed")
                     throw new ConditionalCheckFailedException($"Match '{match.Id}' already exists.");
-                }
-            }
-            catch (TransactionCanceledException)
-            {
                 throw;
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Error creating match {MatchId}", match.Id);
             }
         }
 
-        throw new MatchLifecycleConflictException(match.Id, "creating");
+        var upcoming = match with { Status = MatchStatus.Upcoming };
+        await client.PutItemAsync(new PutItemRequest
+        {
+            TableName = options.MatchesTableName,
+            Item = Item(upcoming),
+            ConditionExpression = "attribute_not_exists(MatchId)"
+        }, cancellationToken);
+        return upcoming;
     }
 
     public async Task<MatchLifecycleResult> FinishAsync(
@@ -319,5 +300,24 @@ public class DynamoMatchManagementStore(
         return reasons is { Count: > 0 }
             && reasons.Any(reason => reason.Code is "ConditionalCheckFailed" or "TransactionConflict")
             && reasons.All(reason => reason.Code is null or "None" or "ConditionalCheckFailed" or "TransactionConflict");
+    }
+
+    private static bool IsLifecycleRaceOnly(TransactionCanceledException exception)
+    {
+        var reasons = exception.CancellationReasons;
+        return reasons is { Count: >= 2 }
+            && (reasons[0].Code is null or "None")
+            && reasons[1].Code == "ConditionalCheckFailed";
+    }
+
+    private void LogCancellation(TransactionCanceledException ex, string matchId, string phase)
+    {
+        var safeMatchId = matchId.Replace('\n', ' ').Replace('\r', ' ');
+        var reasons = ex.CancellationReasons is null
+            ? "none"
+            : string.Join(" | ", ex.CancellationReasons.Select((r, i) => $"{i}:{r.Code}:{r.Message}"));
+        logger.LogWarning(ex,
+            "Dynamo transaction canceled during {Phase} for match {MatchId}. Reasons: {Reasons}",
+            phase, safeMatchId, reasons);
     }
 }
