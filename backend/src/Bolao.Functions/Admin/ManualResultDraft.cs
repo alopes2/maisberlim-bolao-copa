@@ -113,7 +113,7 @@ public record ManualResultDraft(
             && number > 0;
     }
 
-    private static IReadOnlySet<string> TopScorers(
+    private static HashSet<string> TopScorers(
         IReadOnlyList<ManualGoal> goals,
         string teamFifaCode)
     {

@@ -2,10 +2,12 @@ using Amazon.DynamoDBv2;
 using Amazon.DynamoDBv2.Model;
 using Bolao.Functions.Admin;
 using Bolao.Functions.Api;
+using Bolao.Functions.Domain;
 using Bolao.Functions.Persistence;
 using Bolao.Functions.Rosters;
 using NSubstitute;
 using FluentAssertions;
+using System.Text.Json;
 
 namespace Bolao.Functions.Tests.Admin;
 
@@ -106,6 +108,28 @@ public class DynamoAdminApiTests
         var action = () => store.GetManualResultAsync("missing", default);
 
         await action.Should().ThrowAsync<MatchNotFoundException>();
+    }
+
+    [Fact]
+    public async Task ConfirmationStoreReturnsClaimFromUpdatedSnapshot()
+    {
+        var result = new ConfirmedResult(
+            2, 1, "BRA:10", new HashSet<string> { "BRA:10" }, new HashSet<string> { "ARG:9" }, 1, 2, 0, 0);
+        var client = Substitute.For<IAmazonDynamoDB>();
+        client.UpdateItemAsync(Arg.Any<UpdateItemRequest>(), default).Returns(new UpdateItemResponse
+        {
+            Attributes = new Dictionary<string, AttributeValue>
+            {
+                ["ResultVersion"] = new() { N = "1" },
+                ["ConfirmedSnapshot"] = new(JsonSerializer.Serialize(result))
+            }
+        });
+        var store = new DynamoResultConfirmationStore(client, Options());
+
+        var claim = await store.ClaimConfirmationAsync(
+            "match-1", result, "admin-sub", DateTimeOffset.UtcNow, default);
+
+        claim.Result.Should().BeEquivalentTo(result);
     }
 
     private static DynamoAdminApi Service(IAmazonDynamoDB client) =>

@@ -147,8 +147,8 @@ public class ScoreCalculatorTests
 
     private static ScoreBreakdown Score(
         string? firstScorerKey,
-        IReadOnlySet<string> homeTopScorerKeys,
-        IReadOnlySet<string> awayTopScorerKeys,
+        HashSet<string> homeTopScorerKeys,
+        HashSet<string> awayTopScorerKeys,
         int actualAwayRedCards = 1)
     {
         return ScoreCalculator.Score(
@@ -178,8 +178,8 @@ public class ScoreCalculatorTests
         int homeGoals = 2,
         int awayGoals = 1,
         string? firstScorerKey = "BRA:10",
-        IReadOnlySet<string>? homeTopScorerKeys = null,
-        IReadOnlySet<string>? awayTopScorerKeys = null,
+        HashSet<string>? homeTopScorerKeys = null,
+        HashSet<string>? awayTopScorerKeys = null,
         int awayRedCards = 1)
     {
         return new ConfirmedResult(
@@ -194,7 +194,7 @@ public class ScoreCalculatorTests
             awayRedCards);
     }
 
-    private static IReadOnlySet<string> Set(params string[] playerKeys)
+    private static HashSet<string> Set(params string[] playerKeys)
     {
         return playerKeys.ToHashSet();
     }
