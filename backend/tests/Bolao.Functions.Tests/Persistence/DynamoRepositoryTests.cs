@@ -146,13 +146,8 @@ public class DynamoRepositoryTests
         active["Status"] = new("Active");
         client.ScanAsync(Arg.Any<ScanRequest>(), Arg.Any<CancellationToken>())
             .Returns(new ScanResponse { Items = [active] });
-        client.TransactWriteItemsAsync(Arg.Any<TransactWriteItemsRequest>(), Arg.Any<CancellationToken>())
-            .Returns<Task<TransactWriteItemsResponse>>(_ => throw new TransactionCanceledException("duplicate")
-            {
-                CancellationReasons = [new CancellationReason { Code = "ConditionalCheckFailed" }]
-            });
-        client.GetItemAsync(Arg.Any<GetItemRequest>(), Arg.Any<CancellationToken>())
-            .Returns(new GetItemResponse { Item = ManagedItem("duplicate") });
+        client.PutItemAsync(Arg.Any<PutItemRequest>(), Arg.Any<CancellationToken>())
+            .Returns<Task<PutItemResponse>>(_ => throw new ConditionalCheckFailedException("duplicate"));
         var logger = Substitute.For<ILogger<DynamoMatchManagementStore>>();
         var store = new DynamoMatchManagementStore(client, Options(), logger);
 

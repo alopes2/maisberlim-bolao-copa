@@ -32,16 +32,15 @@ public class MatchManagementStoreTests
     public async Task LaterMatchIsUpcomingWhenAnActiveMatchExists()
     {
         var client = ClientWith([Item("active", MatchStatus.Active)]);
-        TransactWriteItemsRequest? transaction = null;
-        client.TransactWriteItemsAsync(Arg.Do<TransactWriteItemsRequest>(request => transaction = request), default)
-            .Returns(new TransactWriteItemsResponse());
+        PutItemRequest? putRequest = null;
+        client.PutItemAsync(Arg.Do<PutItemRequest>(request => putRequest = request), default)
+            .Returns(new PutItemResponse());
 
         var created = await Store(client).CreateManualAsync(Match("later", MatchStatus.Active), default);
 
         created.Status.Should().Be(MatchStatus.Upcoming);
-        transaction!.TransactItems[0].Put.Item["Status"].S.Should().Be("Upcoming");
-        transaction.TransactItems.Should().HaveCount(2);
-        transaction.TransactItems[1].Update.Key["MatchId"].S.Should().Be("__match_lifecycle__");
+        putRequest!.Item["Status"].S.Should().Be("Upcoming");
+        putRequest.ConditionExpression.Should().Be("attribute_not_exists(MatchId)");
     }
 
     [Fact]
@@ -146,27 +145,7 @@ public class MatchManagementStoreTests
     }
 
     [Fact]
-    public async Task CreationRacingFinishRetriesAsActiveInsteadOfStrandingUpcoming()
-    {
-        var harness = new LifecycleHarness(Item("current", MatchStatus.Active, confirmed: true))
-        {
-            DelayUpcomingUntilFinish = true
-        };
-        var store = Store(harness.Client);
-
-        var creation = Task.Run(() => store.CreateManualAsync(Match("new", MatchStatus.Upcoming), default));
-        await harness.UpcomingAttempted.Task;
-        await store.FinishAsync("current", default);
-        harness.FinishCompleted.SetResult();
-        var created = await creation;
-
-        created.Status.Should().Be(MatchStatus.Active);
-        harness.Matches["new"]["Status"].S.Should().Be("Active");
-        harness.Matches.Values.Count(item => item["Status"].S == "Active").Should().Be(1);
-    }
-
-    [Fact]
-    public async Task FinishRetriesWhenUpcomingCreationCompletesAfterItsScan()
+    public async Task UpcomingCreationConcurrentWithFinishCompletesIndependently()
     {
         var harness = new LifecycleHarness(Item("current", MatchStatus.Active, confirmed: true))
         {
@@ -181,9 +160,9 @@ public class MatchManagementStoreTests
         var result = await finish;
 
         created.Status.Should().Be(MatchStatus.Upcoming);
-        result.ActivatedMatchId.Should().Be("new");
+        result.ActivatedMatchId.Should().BeNull();
         harness.Matches["current"]["Status"].S.Should().Be("Closed");
-        harness.Matches["new"]["Status"].S.Should().Be("Active");
+        harness.Matches["new"]["Status"].S.Should().Be("Upcoming");
     }
 
     [Fact]
@@ -197,6 +176,34 @@ public class MatchManagementStoreTests
         var action = () => Store(client).CreateManualAsync(Match("new", MatchStatus.Upcoming), default);
 
         (await action.Should().ThrowAsync<TransactionCanceledException>()).Which.Should().BeSameAs(cancellation);
+    }
+
+    [Fact]
+    public async Task LifecycleRaceDuringFirstMatchCreationFallsBackToUpcoming()
+    {
+        var client = ClientWith([]);
+        client.TransactWriteItemsAsync(Arg.Any<TransactWriteItemsRequest>(), default)
+            .Returns<Task<TransactWriteItemsResponse>>(_ => throw LifecycleRaceCancellation());
+        PutItemRequest? putRequest = null;
+        client.PutItemAsync(Arg.Do<PutItemRequest>(r => putRequest = r), default)
+            .Returns(new PutItemResponse());
+
+        var created = await Store(client).CreateManualAsync(Match("new", MatchStatus.Upcoming), default);
+
+        created.Status.Should().Be(MatchStatus.Upcoming);
+        putRequest!.Item["Status"].S.Should().Be("Upcoming");
+    }
+
+    [Fact]
+    public async Task DuplicateMatchIdIsRejectedOnCreate()
+    {
+        var client = ClientWith([Item("existing", MatchStatus.Active)]);
+        client.PutItemAsync(Arg.Any<PutItemRequest>(), default)
+            .Returns<Task<PutItemResponse>>(_ => throw new ConditionalCheckFailedException("already exists"));
+
+        var action = () => Store(client).CreateManualAsync(Match("existing", MatchStatus.Upcoming), default);
+
+        await action.Should().ThrowAsync<ConditionalCheckFailedException>();
     }
 
     [Fact]
@@ -266,6 +273,15 @@ public class MatchManagementStoreTests
         CancellationReasons = [new CancellationReason { Code = code }]
     };
 
+    private static TransactionCanceledException LifecycleRaceCancellation() => new("cancelled")
+    {
+        CancellationReasons =
+        [
+            new CancellationReason { Code = "None" },
+            new CancellationReason { Code = "ConditionalCheckFailed" }
+        ]
+    };
+
     private class LifecycleHarness
     {
         private readonly object gate = new();
@@ -302,27 +318,31 @@ public class MatchManagementStoreTests
                         };
                     }
                 });
+            Client.PutItemAsync(Arg.Any<PutItemRequest>(), Arg.Any<CancellationToken>())
+                .Returns(call =>
+                {
+                    var request = call.Arg<PutItemRequest>();
+                    lock (gate)
+                    {
+                        var id = request.Item["MatchId"].S;
+                        if (Matches.ContainsKey(id)) throw new ConditionalCheckFailedException($"Match '{id}' already exists.");
+                        Matches[id] = Clone(request.Item);
+                        return new PutItemResponse();
+                    }
+                });
             Client.TransactWriteItemsAsync(Arg.Any<TransactWriteItemsRequest>(), Arg.Any<CancellationToken>())
                 .Returns(call => ApplyAsync(call.Arg<TransactWriteItemsRequest>()));
         }
 
         public IAmazonDynamoDB Client { get; }
         public Dictionary<string, Dictionary<string, AttributeValue>> Matches { get; }
-        public bool DelayUpcomingUntilFinish { get; init; }
         public bool DelayFirstFinishTransactionUntilCreation { get; init; }
-        public TaskCompletionSource UpcomingAttempted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        public TaskCompletionSource FinishCompleted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource FinishScanned { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public TaskCompletionSource CreationCompleted { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         private async Task<TransactWriteItemsResponse> ApplyAsync(TransactWriteItemsRequest request)
         {
             var put = request.TransactItems.FirstOrDefault(item => item.Put is not null)?.Put;
-            if (put?.Item["Status"].S == "Upcoming" && DelayUpcomingUntilFinish)
-            {
-                UpcomingAttempted.TrySetResult();
-                await FinishCompleted.Task;
-            }
             if (put is null && DelayFirstFinishTransactionUntilCreation && !delayedFinish)
             {
                 delayedFinish = true;
@@ -335,20 +355,9 @@ public class MatchManagementStoreTests
                 {
                     var id = put.Item["MatchId"].S;
                     if (Matches.ContainsKey(id)) throw Cancellation("ConditionalCheckFailed");
-                    if (put.Item["Status"].S == "Active")
-                    {
-                        if (activeMatchId is not null) throw Cancellation("ConditionalCheckFailed");
-                    }
-                    else
-                    {
-                        var upcomingLifecycle = request.TransactItems
-                            .Single(item => item.Update?.Key["MatchId"].S == "__match_lifecycle__").Update!;
-                        var expected = upcomingLifecycle.ExpressionAttributeValues[":current"].S;
-                        if (activeMatchId != expected)
-                            throw Cancellation("ConditionalCheckFailed");
-                    }
+                    if (activeMatchId is not null) throw LifecycleRaceCancellation();
                     Matches[id] = Clone(put.Item);
-                    if (put.Item["Status"].S == "Active") activeMatchId = id;
+                    activeMatchId = id;
                     revision++;
                     return new TransactWriteItemsResponse();
                 }
