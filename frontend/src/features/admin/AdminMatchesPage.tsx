@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 import type {
   AdminApi,
@@ -78,12 +79,16 @@ export function AdminMatchesPage({ api }: { api: AdminApi }) {
     onSuccess: () => {
       setForm(emptyForm)
       setFormValidation(null)
+      toast.success('Jogo adicionado.')
       void queryClient.invalidateQueries({ queryKey: ['admin-matches'] })
     },
   })
   const finish = useMutation({
     mutationFn: (matchId: string) => api.finishMatch(matchId),
-    onSuccess: () => {
+    onSuccess: (result) => {
+      toast.success(result.activatedMatchId
+        ? `Jogo finalizado. Próximo jogo ativado: ${result.activatedMatchId}.`
+        : 'Jogo finalizado. Adicione o próximo jogo.')
       for (const queryKey of ['admin-matches', 'current-match', 'match-history', 'leaderboard']) {
         void queryClient.invalidateQueries({ queryKey: [queryKey] })
       }
@@ -96,6 +101,7 @@ export function AdminMatchesPage({ api }: { api: AdminApi }) {
       setEditingMatchId(null)
       setEditForm(null)
       setEditValidation(null)
+      toast.success('Jogo atualizado.')
       void queryClient.invalidateQueries({ queryKey: ['admin-matches'] })
       void queryClient.invalidateQueries({ queryKey: ['current-match'] })
     },
@@ -109,6 +115,9 @@ export function AdminMatchesPage({ api }: { api: AdminApi }) {
         next.delete(variables.fifaCode)
         return next
       })
+      toast.success(variables.eliminated
+        ? 'Seleção marcada como eliminada.'
+        : 'Seleção restaurada.')
       void queryClient.invalidateQueries({ queryKey: ['admin-teams'] })
     },
     onError: (error, variables) => {
@@ -221,7 +230,6 @@ export function AdminMatchesPage({ api }: { api: AdminApi }) {
             <div className="flex flex-col items-start gap-2 sm:col-span-2">
               {formValidation ? <p id="manual-form-error" className="text-sm text-destructive" role="alert">{formValidation}</p> : null}
               {create.isError ? <p className="text-sm text-destructive" role="alert">{errorMessage(create.error)}</p> : null}
-              {create.isSuccess ? <p className="text-sm" role="status">Jogo adicionado.</p> : null}
               <Button type="submit" disabled={create.isPending}>
                 {create.isPending ? 'Adicionando…' : 'Adicionar jogo'}
               </Button>
@@ -236,15 +244,7 @@ export function AdminMatchesPage({ api }: { api: AdminApi }) {
           <CardDescription>{sortedMatches.length} jogos cadastrados.</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
-          {finish.data ? (
-            <p className="text-sm" role="status">
-              {finish.data.activatedMatchId
-                ? `Jogo finalizado. Próximo jogo ativado: ${finish.data.activatedMatchId}.`
-                : 'Jogo finalizado. Adicione o próximo jogo.'}
-            </p>
-          ) : null}
           {finish.isError ? <p className="text-sm text-destructive" role="alert">{errorMessage(finish.error)}</p> : null}
-          {update.isSuccess ? <p className="text-sm" role="status">Jogo atualizado.</p> : null}
           {sortedMatches.length === 0 ? <p className="text-sm text-muted-foreground">Nenhum jogo cadastrado.</p> : null}
           {sortedMatches.map(match => {
             const isEditing = editingMatchId === match.id && editForm

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 
 import type { AdminApi } from '@/api/client'
 import {
@@ -44,6 +45,7 @@ export function AdminMatchPage({ api, matchId }: { api: ResultAdminApi; matchId:
     mutationFn: (result: NonNullable<typeof resultQuery.data>) =>
       api.saveAdminResult(matchId, result),
     onSuccess: async () => {
+      toast.success('Resultado salvo.')
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['admin-result', matchId] }),
         queryClient.invalidateQueries({ queryKey: ['admin-leaderboard', matchId] }),
@@ -51,8 +53,9 @@ export function AdminMatchPage({ api, matchId }: { api: ResultAdminApi; matchId:
     },
   })
   const confirm = useMutation({
-    mutationFn: () => api.confirmResult(matchId),
-    onSuccess: async () => {
+    mutationFn: (_revision: boolean) => api.confirmResult(matchId),
+    onSuccess: async (_, revision) => {
+      toast.success(revision ? 'Resultado revisado.' : 'Resultado confirmado.')
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['admin-matches'] }),
         queryClient.invalidateQueries({ queryKey: ['admin-leaderboard', matchId] }),
@@ -121,7 +124,7 @@ export function AdminMatchPage({ api, matchId }: { api: ResultAdminApi; matchId:
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => confirm.mutate()}>
+                <AlertDialogAction onClick={() => confirm.mutate(match.resultConfirmed)}>
                   Confirmar
                 </AlertDialogAction>
               </AlertDialogFooter>

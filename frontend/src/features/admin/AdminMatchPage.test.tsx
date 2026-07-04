@@ -1,10 +1,13 @@
 import '@testing-library/jest-dom/vitest'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, render, screen } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AdminMatchPage } from './AdminMatchPage'
+
+vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 
 describe('AdminMatchPage', () => {
   it('loads the selected match teams, manual draft, and provisional leaderboard', async () => {
@@ -80,6 +83,17 @@ describe('AdminMatchPage', () => {
     expect(confirm).toBeDisabled()
     await act(async () => resolveSave())
     expect(confirm).toBeEnabled()
+    expect(toast.success).toHaveBeenCalledWith('Resultado salvo.')
+  })
+
+  it('shows a success toast after confirming the result', async () => {
+    const user = userEvent.setup()
+    renderPage(createApi())
+
+    await user.click(await screen.findByRole('button', { name: 'Confirmar resultado' }))
+    await user.click(screen.getByRole('button', { name: /^confirmar$/i }))
+
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Resultado confirmado.'))
   })
 
   it('shows save and confirmation errors accessibly', async () => {

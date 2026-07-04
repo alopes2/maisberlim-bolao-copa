@@ -2,11 +2,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import '@testing-library/jest-dom/vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import { toast } from 'sonner'
 import { describe, expect, it, vi } from 'vitest'
 
 import type { AdminApi, AdminMatchesResponse, AdminTeam } from '@/api/client'
 
 import { AdminMatchesPage } from './AdminMatchesPage'
+
+vi.mock('sonner', () => ({ toast: { success: vi.fn() } }))
 
 const matches: AdminMatchesResponse = {
   matches: [
@@ -139,7 +142,7 @@ describe('AdminMatchesPage', () => {
       kickoff: '2026-06-15T16:00:00.000Z',
       prizeHandedOverAt: null,
     }))
-    expect(await screen.findByText('Jogo adicionado.')).toBeInTheDocument()
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Jogo adicionado.'))
   })
 
   it('edits kickoff and teams while keeping the match ID immutable', async () => {
@@ -172,7 +175,7 @@ describe('AdminMatchesPage', () => {
       awayTeamFifaCode: 'BRA',
       prizeHandedOverAt: null,
     }))
-    expect(await screen.findByText('Jogo atualizado.')).toBeInTheDocument()
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Jogo atualizado.'))
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin-matches'] })
     expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['current-match'] })
   })
@@ -245,6 +248,7 @@ describe('AdminMatchesPage', () => {
     expect(restoreFrance).toBeEnabled()
     resolveUpdate()
     await waitFor(() => expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin-teams'] }))
+    expect(toast.success).toHaveBeenCalledWith('Seleção marcada como eliminada.')
   })
 
   it('tracks overlapping team updates independently', async () => {
@@ -311,7 +315,7 @@ describe('AdminMatchesPage', () => {
     await finishActiveMatch()
 
     expect(finishMatch).toHaveBeenCalledWith('active')
-    expect(await screen.findByText('Jogo finalizado. Próximo jogo ativado: later.')).toBeInTheDocument()
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Jogo finalizado. Próximo jogo ativado: later.'))
     for (const queryKey of ['admin-matches', 'current-match', 'match-history', 'leaderboard']) {
       expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: [queryKey] })
     }
@@ -324,7 +328,7 @@ describe('AdminMatchesPage', () => {
 
     await finishActiveMatch()
 
-    expect(await screen.findByText('Jogo finalizado. Adicione o próximo jogo.')).toBeInTheDocument()
+    await waitFor(() => expect(toast.success).toHaveBeenCalledWith('Jogo finalizado. Adicione o próximo jogo.'))
   })
 
   it('shows a finish failure returned by the API', async () => {

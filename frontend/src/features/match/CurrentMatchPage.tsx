@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 
 import type { ApiClient } from '@/api/client';
 import {
@@ -54,7 +55,10 @@ export function CurrentMatchPage({ api }: { api: ApiClient }) {
       matchId: string;
       prediction: PredictionValues;
     }) => api.savePrediction(matchId, prediction),
-    onSuccess: (saved) => setSubmittedAt(saved.submittedAt),
+    onSuccess: (saved) => {
+      setSubmittedAt(saved.submittedAt);
+      toast.success('Palpite salvo.');
+    },
   });
 
   if (matchQuery.isPending) {

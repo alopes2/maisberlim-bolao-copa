@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/auth-context'
 import { ProfilePage } from '@/auth/ProfilePage'
 import { SignInPage } from '@/auth/SignInPage'
 import { Button } from '@/components/ui/button'
+import { Toaster } from '@/components/ui/sonner'
 import { CurrentMatchPage } from '@/features/match/CurrentMatchPage'
 import { PrivacyPage } from '@/features/legal/PrivacyPage'
 import { RulesPage } from '@/features/legal/RulesPage'
@@ -98,13 +99,16 @@ function AuthenticatedApp({ api, isAdmin }: { api: ApiClient, isAdmin: boolean }
 
 export function App({ api }: { api: ApiClient }) {
   return (
-    <Routes>
-      <Route path="/" element={<AuthenticatedApp api={api} isAdmin={false} />} />
-      <Route path="/admin" element={<AuthenticatedApp api={api} isAdmin />} />
-      <Route path="/regras" element={<RulesPage />} />
-      <Route path="/datenschutz" element={<PrivacyPage />} />
-      <Route path="/privacidade" element={<PrivacyPage />} />
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<AuthenticatedApp api={api} isAdmin={false} />} />
+        <Route path="/admin" element={<AuthenticatedApp api={api} isAdmin />} />
+        <Route path="/regras" element={<RulesPage />} />
+        <Route path="/datenschutz" element={<PrivacyPage />} />
+        <Route path="/privacidade" element={<PrivacyPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+      <Toaster position="top-center" />
+    </>
   )
 }
