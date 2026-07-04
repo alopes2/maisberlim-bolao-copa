@@ -1,7 +1,6 @@
 using Bolao.Functions.Admin;
 using Bolao.Functions.Api;
 using Bolao.Functions.Domain;
-using Bolao.Functions.Notifications;
 using Bolao.Functions.Persistence;
 
 namespace Bolao.Functions.E2E;
@@ -15,7 +14,6 @@ public class E2EState
         IMatchManagementStore,
         IResultConfirmationStore,
         IConfirmedResultPublisher,
-        IWinnerNotificationService,
         ITeamEliminationStore
 {
     private readonly Lock gate = new();

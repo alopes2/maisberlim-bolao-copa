@@ -6,8 +6,6 @@ using Bolao.Functions.Api;
 using Bolao.Functions.Auth;
 using Bolao.Functions.Domain;
 using Bolao.Functions.E2E;
-using Bolao.Functions.Jobs;
-using Bolao.Functions.Notifications;
 using Bolao.Functions.Persistence;
 using Bolao.Functions.Rosters;
 using Microsoft.AspNetCore.Authentication;
@@ -83,7 +81,6 @@ public static class AppBootstrap
         services.AddSingleton<IMatchManagementStore>(provider => provider.GetRequiredService<E2EState>());
         services.AddSingleton<IResultConfirmationStore>(provider => provider.GetRequiredService<E2EState>());
         services.AddSingleton<IConfirmedResultPublisher>(provider => provider.GetRequiredService<E2EState>());
-        services.AddSingleton<IWinnerNotificationService>(provider => provider.GetRequiredService<E2EState>());
         services.AddSingleton<ITeamEliminationStore>(provider => provider.GetRequiredService<E2EState>());
         services.AddSingleton<IRosterCatalog>(_ => new JsonRosterCatalog(RosterPath()));
         services.AddScoped<ManualResultRosterValidator>();
@@ -122,25 +119,6 @@ public static class AppBootstrap
         services.AddScoped<PredictionService>();
         services.AddScoped<ResultPublicationService>();
         services.AddScoped<IConfirmedResultPublisher, ConfirmedResultPublisher>();
-        var sesFromEmail = Environment.GetEnvironmentVariable("SES_FROM_EMAIL");
-        if (string.IsNullOrWhiteSpace(sesFromEmail))
-        {
-            services.AddScoped<IWinnerNotificationService, DisabledWinnerNotificationService>();
-        }
-        else
-        {
-            services.AddScoped<IWinnerNotificationStore, DynamoWinnerNotificationStore>();
-            services.AddScoped<IWinnerLookup>(provider => new DynamoCognitoWinnerLookup(
-                provider.GetRequiredService<IAmazonDynamoDB>(),
-                provider.GetRequiredService<IAmazonCognitoIdentityProvider>(),
-                options,
-                provider.GetRequiredService<IPredictionRepository>(),
-                Required("COGNITO_USER_POOL_ID")));
-            services.AddScoped<IWinnerEmailSender>(provider => new SesWinnerEmailSender(
-                provider.GetRequiredService<IAmazonSimpleEmailServiceV2>(),
-                sesFromEmail));
-            services.AddScoped<IWinnerNotificationService, SesWinnerNotificationService>();
-        }
         services.AddScoped<ResultConfirmationService>();
     }
 

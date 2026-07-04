@@ -1,6 +1,5 @@
 using Bolao.Functions.Domain;
 using Bolao.Functions.Logging;
-using Bolao.Functions.Notifications;
 using Bolao.Functions.Persistence;
 
 namespace Bolao.Functions.Admin;
@@ -22,7 +21,6 @@ public class ResultConfirmationService(
     IResultConfirmationStore store,
     ManualResultRosterValidator rosterValidator,
     IConfirmedResultPublisher publisher,
-    IWinnerNotificationService notifications,
     TimeProvider timeProvider,
     ILogger<ResultConfirmationService> logger)
 {
@@ -57,7 +55,6 @@ public class ResultConfirmationService(
                 claim.ResultVersion.ToString(System.Globalization.CultureInfo.InvariantCulture),
                 claim.Result,
                 cancellationToken);
-            await notifications.NotifyAsync(matchId, claim.ResultVersion, cancellationToken);
 
             logger.LogInformation(
                 "Confirmed result for match {MatchId} at version {ResultVersion}", safeMatchId, claim.ResultVersion);

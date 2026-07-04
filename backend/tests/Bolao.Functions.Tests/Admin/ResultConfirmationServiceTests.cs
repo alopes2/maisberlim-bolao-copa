@@ -1,6 +1,5 @@
 using Bolao.Functions.Admin;
 using Bolao.Functions.Domain;
-using Bolao.Functions.Notifications;
 using Bolao.Functions.Rosters;
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
@@ -161,12 +160,10 @@ public class ResultConfirmationServiceTests
                 "match-1", Arg.Any<ConfirmedResult>(), "admin-1", Arg.Any<DateTimeOffset>(), Arg.Any<CancellationToken>())
             .Returns(new ConfirmationClaim(3, Result));
         var publisher = Substitute.For<IConfirmedResultPublisher>();
-        var notifications = Substitute.For<IWinnerNotificationService>();
         var service = new ResultConfirmationService(
             store,
             RosterValidator(),
             publisher,
-            notifications,
             new FixedTimeProvider(new DateTimeOffset(2026, 6, 29, 21, 0, 0, TimeSpan.Zero)),
             Substitute.For<ILogger<ResultConfirmationService>>());
 
@@ -182,8 +179,6 @@ public class ResultConfirmationServiceTests
             Arg.Any<CancellationToken>());
         await publisher.Received(1).PublishAsync(
             "match-1", "3", Result, Arg.Any<CancellationToken>());
-        await notifications.Received(1).NotifyAsync(
-            "match-1", 3, Arg.Any<CancellationToken>());
     }
 
     [Fact]
@@ -196,7 +191,6 @@ public class ResultConfirmationServiceTests
             store,
             RosterValidator(),
             Substitute.For<IConfirmedResultPublisher>(),
-            Substitute.For<IWinnerNotificationService>(),
             TimeProvider.System,
             Substitute.For<ILogger<ResultConfirmationService>>());
 
@@ -216,7 +210,6 @@ public class ResultConfirmationServiceTests
             store,
             RosterValidator(),
             Substitute.For<IConfirmedResultPublisher>(),
-            Substitute.For<IWinnerNotificationService>(),
             TimeProvider.System,
             Substitute.For<ILogger<ResultConfirmationService>>());
 
