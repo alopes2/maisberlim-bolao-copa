@@ -193,6 +193,35 @@ public class ParticipantEndpointTests
     }
 
     [Fact]
+    public async Task LeaderboardExcludesStandingsWithoutRequestedMatch()
+    {
+        var client = Substitute.For<IAmazonDynamoDB>();
+        client.ScanAsync(Arg.Any<ScanRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new ScanResponse
+            {
+                Items =
+                [
+                    new Dictionary<string, AttributeValue>
+                    {
+                        ["ParticipantId"] = new("user-1"),
+                        ["TotalPoints"] = new() { N = "18" },
+                        ["ExactScoreCount"] = new() { N = "1" },
+                        ["FirstScorerCount"] = new() { N = "1" },
+                        ["FinalSubmissionAt"] = new("2026-07-03T20:00:00Z"),
+                        ["AppliedMatches"] = new() { SS = ["bra-gha-03-07"] }
+                    }
+                ]
+            });
+        client.GetItemAsync(Arg.Any<GetItemRequest>(), Arg.Any<CancellationToken>())
+            .Returns(new GetItemResponse { Item = [] });
+
+        var leaderboard = await Queries(client)
+            .GetConfirmedLeaderboardAsync("bra-nor-05-07", default);
+
+        leaderboard.Entries.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task PutPredictionAtCutoffReturnsStableConflict()
     {
         await using var factory = new ApiFactory();

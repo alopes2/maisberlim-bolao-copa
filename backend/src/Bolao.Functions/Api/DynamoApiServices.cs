@@ -143,7 +143,9 @@ public class DynamoApiQueries(
                 TableName = options.StandingsTableName,
                 ExclusiveStartKey = startKey
             }, cancellationToken);
-            standings.AddRange(response.Items.Select(ToStanding));
+            standings.AddRange(response.Items
+                .Select(ToStanding)
+                .Where(standing => standing.AppliedMatches.Contains(matchId)));
             startKey = response.LastEvaluatedKey;
         }
         while (startKey is { Count: > 0 });
