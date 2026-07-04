@@ -78,20 +78,6 @@ public class DynamoMatchManagementStore(
                 {
                     items.Add(new TransactWriteItem
                     {
-                        ConditionCheck = new ConditionCheck
-                        {
-                            TableName = options.MatchesTableName,
-                            Key = Key(activeMatch.Id),
-                            ConditionExpression = "#status = :active",
-                            ExpressionAttributeNames = new Dictionary<string, string> { ["#status"] = "Status" },
-                            ExpressionAttributeValues = new Dictionary<string, AttributeValue>
-                            {
-                                [":active"] = new(MatchStatus.Active.ToString())
-                            }
-                        }
-                    });
-                    items.Add(new TransactWriteItem
-                    {
                         Update = LifecycleUpdate(
                             activeMatch.Id,
                             "attribute_not_exists(ActiveMatchId) OR ActiveMatchId = :current",

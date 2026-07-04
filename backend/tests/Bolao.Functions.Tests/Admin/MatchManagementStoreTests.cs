@@ -40,8 +40,8 @@ public class MatchManagementStoreTests
 
         created.Status.Should().Be(MatchStatus.Upcoming);
         transaction!.TransactItems[0].Put.Item["Status"].S.Should().Be("Upcoming");
-        transaction.TransactItems[1].ConditionCheck.Key["MatchId"].S.Should().Be("active");
-        transaction.TransactItems[2].Update.Key["MatchId"].S.Should().Be("__match_lifecycle__");
+        transaction.TransactItems.Should().HaveCount(2);
+        transaction.TransactItems[1].Update.Key["MatchId"].S.Should().Be("__match_lifecycle__");
     }
 
     [Fact]
@@ -341,11 +341,10 @@ public class MatchManagementStoreTests
                     }
                     else
                     {
-                        var expected = request.TransactItems.Single(item => item.ConditionCheck is not null)
-                            .ConditionCheck.Key["MatchId"].S;
-                        if (activeMatchId != expected
-                            || !Matches.TryGetValue(expected, out var active)
-                            || active["Status"].S != "Active")
+                        var upcomingLifecycle = request.TransactItems
+                            .Single(item => item.Update?.Key["MatchId"].S == "__match_lifecycle__").Update!;
+                        var expected = upcomingLifecycle.ExpressionAttributeValues[":current"].S;
+                        if (activeMatchId != expected)
                             throw Cancellation("ConditionalCheckFailed");
                     }
                     Matches[id] = Clone(put.Item);
