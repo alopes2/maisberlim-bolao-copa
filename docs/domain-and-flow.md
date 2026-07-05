@@ -40,6 +40,14 @@ Placar exato e resultado correto não acumulam pontos. Um empate com placar não
 
 Editar um palpite substitui o horário anterior para o desempate. O ranking público usa somente resultados confirmados; o ranking provisório fica restrito à administração.
 
+## Prêmios
+
+- 1º lugar: 5 caipirinhas.
+- 2º lugar: 2 caipirinhas.
+- 3º lugar: 1 caipirinha.
+
+A identidade dos vencedores é validada antes da entrega dos prêmios.
+
 ## Fluxo do palpite
 
 1. O participante autentica com Google e completa o perfil.

@@ -44,11 +44,16 @@ export function RulesPage() {
             </ol>
           </section>
           <section className="flex flex-col gap-2">
-            <h2 className="font-medium">Apuração e prêmio</h2>
+            <h2 className="font-medium">Apuração e prêmios</h2>
             <p>
               A administração do MaisBerlim registra manualmente placar, gols, cartões e, quando houver, o ganhador nos pênaltis. O resultado confirmado pela administração é a decisão final para a pontuação.
             </p>
-            <p>A identidade do vencedor será validada antes da entrega do prêmio.</p>
+            <ul className="list-disc pl-5">
+              <li>1º lugar — 5 caipirinhas</li>
+              <li>2º lugar — 2 caipirinhas</li>
+              <li>3º lugar — 1 caipirinha</li>
+            </ul>
+            <p>A identidade dos vencedores será validada antes da entrega dos prêmios.</p>
           </section>
         </CardContent>
       </Card>

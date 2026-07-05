@@ -41,4 +41,12 @@ describe('RulesPage', () => {
     expectScore('Vermelhos exatos de cada seleção', 1)
     expect(screen.getByText(/em 0–0 não há pontos por primeiro gol ou artilheiro/i)).toBeInTheDocument()
   })
+
+  it('publishes the prizes for the top three places', () => {
+    render(<RulesPage />)
+
+    expect(screen.getByText('1º lugar — 5 caipirinhas')).toBeInTheDocument()
+    expect(screen.getByText('2º lugar — 2 caipirinhas')).toBeInTheDocument()
+    expect(screen.getByText('3º lugar — 1 caipirinha')).toBeInTheDocument()
+  })
 })
