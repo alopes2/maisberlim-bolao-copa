@@ -10,7 +10,7 @@ Este documento é um mapa curto do domínio. Os nomes em inglês correspondem ao
 - **Prediction**: versão final do palpite de um participante para um jogo. Uma edição substitui a anterior e atualiza `SubmittedAt`.
 - **ManualResultDraft**: rascunho administrativo com gols ordenados, cartões e eventual vencedor nos pênaltis. A ordem determina o primeiro autor do gol e as contagens determinam placar e artilheiros.
 - **MatchResult**: snapshot confirmado e imutável derivado do `ManualResultDraft`.
-- **ScoreBreakdown**: pontos obtidos por um palpite em cada categoria do jogo. O total máximo é 18.
+- **ScoreBreakdown**: pontos obtidos por um palpite em cada categoria do jogo. O total máximo é 28.
 - **Standing**: classificação acumulada de um participante: pontos totais, contadores de desempate, horário e jogos já aplicados.
 - **ResultVersion**: identificador da versão confirmada. Reprocessar a mesma versão não aplica pontos novamente.
 - **Leaderboard**: lista pública ordenada a partir dos `Standing` confirmados. Dados provisórios não são expostos.
@@ -20,16 +20,16 @@ Este documento é um mapa curto do domínio. Os nomes em inglês correspondem ao
 
 | Critério | Pontos |
 | --- | ---: |
-| Placar exato, sem disputa de pênaltis ou com vencedor correto | 5 |
-| Placar exato, mas vencedor nos pênaltis ausente ou incorreto | 4 |
-| Apenas vencedor ou empate correto | 2 |
+| Placar exato | 5 |
+| Vencedor ou empate correto | 5 |
+| Bônus por acertar placar exato e vencedor ou empate | 5 |
 | Primeiro jogador a marcar | 3 |
 | Artilheiro isolado de uma seleção | 3 por seleção |
 | Um dos artilheiros empatados de uma seleção | 2 por seleção |
 | Quantidade exata de cartões amarelos | 1 por seleção |
 | Quantidade exata de cartões vermelhos | 1 por seleção |
 
-Placar exato e resultado correto não acumulam pontos. Um empate com placar não exato continua valendo 2 pontos, independentemente do vencedor nos pênaltis. Em uma partida sem gols, não há pontos por primeiro gol ou artilheiro. O máximo permanece 18 pontos por jogo.
+Os três critérios principais acumulam até 15 pontos. Nos jogos com pênaltis, o vencedor escolhido nos pênaltis conta como o vencedor. Placar exato com vencedor nos pênaltis incorreto ou ausente vale somente os 5 pontos do placar exato. Em uma partida sem gols, não há pontos por primeiro gol ou artilheiro. O máximo é 28 pontos por jogo.
 
 ## Ordem do ranking
 
