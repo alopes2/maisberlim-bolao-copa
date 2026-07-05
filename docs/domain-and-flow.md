@@ -43,8 +43,8 @@ Editar um palpite substitui o horário anterior para o desempate. O ranking púb
 ## Prêmios
 
 - 1º lugar: 5 caipirinhas.
-- 2º lugar: 2 caipirinhas.
-- 3º lugar: 1 caipirinha.
+- 2º lugar: 3 caipirinhas.
+- 3º lugar: 2 capirinhas.
 
 A identidade dos vencedores é validada antes da entrega dos prêmios.
 
