@@ -73,8 +73,6 @@ Crie o ambiente protegido `production`, com aprovação obrigatória para deploy
 | `GOOGLE_CLIENT_ID` | client ID OAuth Web do Google |
 | `ADMIN_EMAILS` | array JSON de e-mails Google administradores |
 | `CLOUDFRONT_DISTRIBUTION_ID` | output `cloudfront_distribution_id` |
-| `SES_IDENTITY_ARN` | opcional; identidade SES para notificar o vencedor |
-| `SES_FROM_EMAIL` | opcional; remetente da notificação do vencedor |
 
 Configure os GitHub Secrets protegidos:
 
@@ -127,20 +125,6 @@ O admin registra gols em ordem, cartões e eventual vencedor nos pênaltis, cons
 - Use `PUT /admin/matches/{id}/result` para salvar o rascunho, `POST /admin/matches/{id}/confirm` para publicá-lo e `POST /admin/matches/{id}/finish` para fechar o jogo e ativar o próximo.
 - Depois da entrega do prêmio, grave `prizeHandedOverAt`. O job diário anonimiza PII e solicita exclusão da conta Cognito 90 dias após a data mais recente aplicável ao participante, preservando agregados.
 - Logs não devem conter nomes, e-mails, tokens nem palpites completos.
-
-## SES e domínio
-
-O Cognito usa a configuração padrão e o login Google não envia e-mail. Enquanto `ses_identity_arn`/`ses_from_email` não forem configurados, somente a notificação customizada do vencedor fica desabilitada; ranking e confirmação continuam funcionando.
-
-Para produção pública:
-
-1. obtenha acesso de produção no SES;
-2. verifique domínio/remetente, mesmo com DNS fora do Route 53;
-3. forneça `ses_identity_arn` e `ses_from_email` ao Terraform;
-4. aplique a mudança e teste com destinatários controlados;
-5. confirme SPF/DKIM e monitore bounces.
-
-Falhas normais do SES liberam o claim para retry manual e permanecem visíveis ao admin. Um crash entre o claim e o envio não permite garantia estrita de exactly-once do provedor.
 
 ## Rollback
 

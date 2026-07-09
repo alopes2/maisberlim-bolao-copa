@@ -153,15 +153,13 @@ resource "aws_lambda_function" "this" {
   memory_size      = each.value.memory_size
 
   environment {
-    variables = merge({
+    variables = {
       PARTICIPANTS_TABLE_NAME = aws_dynamodb_table.this["participants"].name
       MATCHES_TABLE_NAME      = aws_dynamodb_table.this["matches"].name
       PREDICTIONS_TABLE_NAME  = aws_dynamodb_table.this["predictions"].name
       STANDINGS_TABLE_NAME    = aws_dynamodb_table.this["standings"].name
       COGNITO_USER_POOL_ID    = aws_cognito_user_pool.main.id
-      }, each.key == "api" && local.ses_from_email != null ? {
-      SES_FROM_EMAIL = local.ses_from_email
-    } : {})
+    }
   }
 
   lifecycle {

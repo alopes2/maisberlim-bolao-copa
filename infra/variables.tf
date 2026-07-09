@@ -36,20 +36,3 @@ variable "google_client_secret" {
   type        = string
   sensitive   = true
 }
-
-variable "ses_identity_arn" {
-  description = "Verified SES identity ARN for winner notifications; null disables notification email."
-  type        = string
-  default     = null
-}
-
-variable "ses_from_email" {
-  description = "Winner-notification From address used with ses_identity_arn."
-  type        = string
-  default     = null
-
-  validation {
-    condition     = (var.ses_identity_arn == null) == (var.ses_from_email == null)
-    error_message = "ses_identity_arn and ses_from_email must be set together."
-  }
-}

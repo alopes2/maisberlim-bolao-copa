@@ -7,7 +7,3 @@
 # cognito_logout_urls   = ["https://example.cloudfront.net/", "http://localhost:5173/"]
 # google_client_id      = "replace-via-github-variable"
 # google_client_secret  = "replace-via-github-secret"
-
-# Enable winner notifications after SES production access and identity verification:
-# ses_identity_arn = "arn:aws:ses:eu-central-1:123456789012:identity/maisberlim.com"
-# ses_from_email   = "MaisBerlim <bolao@maisberlim.com>"
