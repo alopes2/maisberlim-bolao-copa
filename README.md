@@ -138,4 +138,3 @@ O admin registra gols em ordem, cartões e eventual vencedor nos pênaltis, cons
 - informar a role OIDC externa em `AWS_ROLE_ARN` e restringir sua trust policy;
 - criar as credenciais OAuth Web do Google e fornecer o client ID/secret;
 - executar/revisar o primeiro plan/apply;
-- obter SES production access e os registros DNS antes de ativar e-mail próprio.

@@ -112,20 +112,6 @@ resource "aws_iam_role_policy" "api_cognito" {
   })
 }
 
-resource "aws_iam_role_policy" "api_ses" {
-  count = local.ses_identity_arn == null ? 0 : 1
-
-  name = "${local.name_prefix}-api-ses"
-  role = aws_iam_role.lambda["api"].id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = ["ses:SendEmail"]
-      Resource = local.ses_identity_arn
-    }]
-  })
-}
 
 resource "aws_iam_role_policy" "retention_cognito" {
   name = "${local.name_prefix}-retention-cognito"
